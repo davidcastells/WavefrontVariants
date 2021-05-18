@@ -1,0 +1,214 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <assert.h>
+#include "PerformanceLap.h"
+#include "LevDP.h"
+#include "WavefrontOriginal.h"
+#include "WavefrontExtendPrecomputing.h"
+#include "WavefrontDynamicDiamond.h"
+#include "WavefrontDiamond.h"
+#include "utils.h"
+#include "fasta.h"
+
+int wavefront_classic(const char* P, const char* T, int m, int n, int k);
+int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
+
+void test_primitives();
+int polarExistsInD(int d, int r);
+int polarExistsInW(int d, int r);
+
+
+void generatePT(char** pP, char** pT, int m, int n)
+{
+	char s[]="ACGT";
+	
+	*pP = new char[m+1];
+	*pT = new char[n+1];
+	
+	assert(*pP);
+	assert(*pT);
+	
+	for (int i=0; i< m; i++)
+		(*pP)[i] = s[rand()%4];
+	(*pP)[m] = 0;
+	
+	for (int i=0; i< n; i++)
+		(*pT)[i] = s[rand()%4];
+	(*pT)[n] = 0;
+	
+	for (int k=0; k < 3; k++)
+	{
+		// now copy fragments of P in T, to reduce errors
+		int lenCopy = (rand() % min2(m,n)) / 1.3;
+		int startP = rand() % (m-lenCopy);
+		int startT = startP + (rand() % (200));
+		
+		
+		printf("copy fragment %d\n", lenCopy);
+		for (int i=0; i < lenCopy; i++)
+			if (startT+i < n)
+				(*pT)[startT+i] = (*pP)[startP+i]; 
+	}
+}
+
+
+int doDP = 0;
+int doWFO = 0;
+int doWFE = 0;
+int doWFD = 0;
+int doWFDD = 0;
+
+long gM = 100;
+long gN = 100;
+long gK = 100;
+
+char* gP = NULL;
+char* gT = NULL;
+
+void parseArgs(int argc, char* args[])
+{
+	for (int i=1; i < argc; i++)
+	{
+		if (strcmp(args[i], "-m") == 0)
+		{
+			gM = atol(args[++i]);
+		}
+		if (strcmp(args[i], "-n") == 0)
+		{
+			gN = atol(args[++i]);
+		}
+		if (strcmp(args[i], "-k") == 0)
+		{
+			gK = atol(args[++i]);
+		}
+		
+		if (strcmp(args[i], "-P") == 0)
+			gP = args[++i];
+		if (strcmp(args[i], "-T") == 0)
+			gT = args[++i];
+		
+		
+		if (strcmp(args[i], "-DP") == 0)
+			doDP = 1;
+		if (strcmp(args[i], "-WFO") == 0)
+			doWFO = 1;
+		if (strcmp(args[i], "-WFE") == 0)
+			doWFE = 1;	
+		if (strcmp(args[i], "-WFD") == 0)
+			doWFD = 1;	
+		if (strcmp(args[i], "-WFDD") == 0)
+			doWFDD = 1;
+	}
+}
+
+int main(int argc, char* args[])
+{
+	parseArgs(argc, args);
+
+	FastaInfo fastaP;
+	FastaInfo fastaT;
+	
+	if (gP == NULL && gT == NULL)
+		generatePT(&gP, &gT, gM, gN);
+	else
+	{
+		fastaP = FastaReader::read(gP);
+		fastaT = FastaReader::read(gT);
+
+		gP = fastaP.seq;
+		gT = fastaT.seq;
+		
+		gM = strlen(gP);
+		gN = strlen(gT);
+	}
+	
+	if (gK == -1)
+		gK = max2(gM, gN);
+	
+	//long m = strlen(P);
+	//long n = strlen(T);
+
+	//printf("P=%s\n", P);
+	//printf("T=%s\n", T);
+	printf("Wavefront algorithm test\n");
+	printf("m=%d n=%d k=%d\n", gM, gN, gK);
+
+
+	// Test Dynamic Programming Levenshtein distance
+	if (doDP)
+	{	
+		LevDP levdp;
+		levdp.setInput(gP, gT, gK);
+		PerformanceLap lap;
+		int ed = levdp.getDistance();
+		lap.stop();
+		
+		printf("Dynamic Programming classic Distance=%d Time=%0.5f seconds\n", ed, lap.lap());
+	}
+
+	// Test Original Wavefront Algorithm 
+	if (doWFO)	
+	{
+		WavefrontOriginal wavOrig;
+		wavOrig.setInput(gP, gT, gK);
+		
+		PerformanceLap lap;
+		int ed = wavOrig.getDistance();
+		lap.stop();
+		
+		printf("Wavefront classic distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
+	
+
+	// Test Extend Precomputing Wavefront
+	if (doWFE)
+	{
+		WavefrontExtendPrecomputing wavExtend;
+		wavExtend.setInput(gP, gT, gK);
+		
+		PerformanceLap lap;
+		wavExtend.precomputeExtend();
+		lap.stop();		
+		printf("Precomputing Extend Table. Time: %0.5f seconds\n", lap.lap());
+		
+		lap.start();
+		int ed = wavExtend.getDistance();
+		lap.stop();
+		
+		printf("Wavefront precomputed extend distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
+	
+	// Test Diamond Wavefront
+	if (doWFD)
+	{
+		WavefrontDiamond wavDiamond;
+		wavDiamond.setInput(gP, gT, gK);
+		
+		PerformanceLap lap;
+		int ed = wavDiamond.getDistance();
+		lap.stop();
+		
+		printf("Wavefront Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
+	
+	// Test Dynamic Diamond Wavefront
+	if (doWFDD)
+	{
+		WavefrontDynamicDiamond wavDynamicDiamond;
+		wavDynamicDiamond.setInput(gP, gT);
+		
+		PerformanceLap lap;
+		int ed = wavDynamicDiamond.getDistance();
+		lap.stop();
+		
+		printf("Wavefront Dynamic Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
+	
+	return 0;
+}
+
+
+
+
+
