@@ -73,7 +73,7 @@ void WavefrontOriginal::setInput(const char* P, const char* T, long k)
 
 	long size = (k)*(k);
 	
-	printf("create buffer %.2f GB\n", size/(1E9));
+	printf("create buffer %.2f GB\n", size*sizeof(long)/(1E9));
 
 	m_W = new long[size];
 	
