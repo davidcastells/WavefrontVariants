@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <new>
 
 #define CARTESIAN_TO_INDEX(y, x, w)		((y)*(w) + (x))
 
@@ -27,11 +28,18 @@ void LevDP::setInput(const char* P, const char* T, int k)
 
 	long size = (m_m+1)*(m_n+1);
 	
-	printf("create buffer %.2f GB\n", size/(1E9));
+	printf("create buffer %.2f GB\n", size*sizeof(long)/(1E9));
 
-	m_D = new int[size];
+	try
+	{
+		m_D = new long[size];
+	}
+	catch (const std::bad_alloc& e) 
+	{
+		printf("FAILED to allocate memory\n");
+		exit(-1);
+	}
 	
-	assert(m_D);
 	m_top = max2(m_m, m_n);
 	m_P = P;
 	m_T = T;
@@ -40,7 +48,7 @@ void LevDP::setInput(const char* P, const char* T, int k)
 
 }
 
-int LevDP::getDistance()
+long LevDP::getDistance()
 {
 	printf("computing\n");
 	for (long y = 0; y <= m_m; y++)
@@ -63,11 +71,11 @@ int LevDP::getDistance()
 				}
 				else
 				{
-					int dif = m_P[y-1] != m_T[x-1];
-					int diag = m_D[CARTESIAN_TO_INDEX(y-1, x-1, m_n+1)] + dif;
-					int up = m_D[CARTESIAN_TO_INDEX(y-1, x, m_n+1)] + 1;
-					int left = m_D[CARTESIAN_TO_INDEX(y, x-1, m_n+1)] + 1;
-					int v = min3(up, left, diag);
+					long dif = m_P[y-1] != m_T[x-1];
+					long diag = m_D[CARTESIAN_TO_INDEX(y-1, x-1, m_n+1)] + dif;
+					long up = m_D[CARTESIAN_TO_INDEX(y-1, x, m_n+1)] + 1;
+					long left = m_D[CARTESIAN_TO_INDEX(y, x-1, m_n+1)] + 1;
+					long v = min3(up, left, diag);
 					m_D[CARTESIAN_TO_INDEX(y, x, m_n+1)] = v;
 				}
 			}
@@ -75,7 +83,7 @@ int LevDP::getDistance()
 			// printf("D[%d][%d]=%d\n", y, x, D[CARTESIAN_TO_INDEX(y,x, n+1)] );
 		}
 		
-	int ret = m_D[CARTESIAN_TO_INDEX(m_m, m_n, m_n+1)];
+	long ret = m_D[CARTESIAN_TO_INDEX(m_m, m_n, m_n+1)];
 	
 	return ret;
 }
