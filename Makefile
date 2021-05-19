@@ -1,2 +1,2 @@
 all:
-	g++ -g -O2 fasta.cpp wavefront.cpp WavefrontOriginal.cpp WavefrontExtendPrecomputing.cpp WavefrontDiamond.cpp WavefrontDynamicDiamond.cpp LevDP.cpp PerformanceLap.cpp -o wavefront.exe
+	g++ -g -O2 *.cpp -o wavefront.exe
