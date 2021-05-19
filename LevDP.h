@@ -10,9 +10,9 @@ public:
 	virtual ~LevDP();
 
 	void setInput(const char* P, const char* T, int k);
-	int getDistance();
+	long getDistance();
 	
-	int* m_D;
+	long* m_D;
 	long m_top;
 	const char* m_P;
 	const char* m_T;
