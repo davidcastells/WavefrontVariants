@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "PerformanceLap.h"
 #include "LevDP.h"
+#include "LevDP2Cols.h"
 #include "WavefrontOriginal.h"
 #include "WavefrontExtendPrecomputing.h"
 #include "WavefrontDynamicDiamond.h"
@@ -54,6 +55,7 @@ void generatePT(char** pP, char** pT, int m, int n)
 
 
 int doDP = 0;
+int doDP2 = 0;
 int doWFO = 0;
 int doWFE = 0;
 int doWFD = 0;
@@ -65,6 +67,8 @@ long gK = 100;
 
 char* gP = NULL;
 char* gT = NULL;
+
+int verbose = 0;
 
 void parseArgs(int argc, char* args[])
 {
@@ -91,6 +95,8 @@ void parseArgs(int argc, char* args[])
 		
 		if (strcmp(args[i], "-DP") == 0)
 			doDP = 1;
+		if (strcmp(args[i], "-DP2") == 0)
+			doDP2 = 1;
 		if (strcmp(args[i], "-WFO") == 0)
 			doWFO = 1;
 		if (strcmp(args[i], "-WFE") == 0)
@@ -99,6 +105,9 @@ void parseArgs(int argc, char* args[])
 			doWFD = 1;	
 		if (strcmp(args[i], "-WFDD") == 0)
 			doWFDD = 1;
+		
+		if (strcmp(args[i], "-v") == 0)
+			verbose = 1;
 	}
 }
 
@@ -142,6 +151,18 @@ int main(int argc, char* args[])
 		levdp.setInput(gP, gT, gK);
 		PerformanceLap lap;
 		int ed = levdp.getDistance();
+		lap.stop();
+		
+		printf("Dynamic Programming classic Distance=%d Time=%0.5f seconds\n", ed, lap.lap());
+	}
+	
+	// Test Dynamic Programming Levenshtein distance with 2 cols
+	if (doDP2)
+	{	
+		LevDP2Cols levdp2;
+		levdp2.setInput(gP, gT, gK);
+		PerformanceLap lap;
+		int ed = levdp2.getDistance();
 		lap.stop();
 		
 		printf("Dynamic Programming classic Distance=%d Time=%0.5f seconds\n", ed, lap.lap());
