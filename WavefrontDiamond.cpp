@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <new>
 
 #define CARTESIAN_TO_INDEX(y, x, w)		((y)*(w) + (x))
 #define POLAR_D_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_D_TO_CARTESIAN_Y((d), (r)),POLAR_D_TO_CARTESIAN_X((d), (r)),w)
@@ -75,7 +76,15 @@ void WavefrontDiamond::setInput(const char* P, const char* T, long k)
 	
 	printf("create buffer %.2f GB\n", size*sizeof(long)/(1E9));
 
-	m_W = new long[size];
+	try
+	{
+		m_W = new long[size];
+	}
+	catch (const std::bad_alloc& e) 
+	{
+		printf("FAILED to allocate memory\n");
+		exit(-1);
+	}
 	
 	assert(m_W);
 	m_top = max2(m_m,m_n);
@@ -92,10 +101,13 @@ long WavefrontDiamond::getDistance()
 	
 	// for the first element, just execute the extend phase
 	m_W[0] = WavefrontDiamond_extend(m_P, m_T, m_m, m_n, 0, 0);
-	
+		
 	long k_odd = m_k % 2;
 	long k_half = m_k/2;
-	
+
+	if (m_W[0] >= m_top)
+		goto end_loop;
+
 	// opening the diamond
 	for (long r=1; r < k_half; r++)
 	{
@@ -206,8 +218,7 @@ long WavefrontDiamond::getDistance()
 		}
 	}
 	
-end_loop:
-	
+end_loop:	
 	return ret;
 }
 
