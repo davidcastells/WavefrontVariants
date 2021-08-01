@@ -1,16 +1,18 @@
 Examples
 
 For short sequences (distance = 92254)
-./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -DP2 -v (112 seconds on laptop)
-./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -WFO2 -v (108 seconds on laptop)
-./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -WFD2 -v (112 seconds on laptop)
-./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -WFDD2 -v (xxx seconds on laptop)
+
+./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -DP2 -v (112 seconds on laptop)<br/>
+./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -WFO2 -v (108 seconds on laptop)<br/>
+./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -WFD2 -v (112 seconds on laptop)<br/>
+./wavefront.exe -fP data/NC_000898.1.fasta -fT data/NC_007605.1.fasta -k -1 -WFDD2 -v (xxx seconds on laptop)<br/>
+
 
 
 For longer sequences
 
-./wavefront.exe -fP data/AE016879.1.fasta -fT data/AE017225.1.fasta -k -1 -DP2 -v
-./wavefront.exe -fP data/AE016879.1.fasta -fT data/AE017225.1.fasta -k -1 -WFO2 -v
+./wavefront.exe -fP data/AE016879.1.fasta -fT data/AE017225.1.fasta -k -1 -DP2 -v<br/>
+./wavefront.exe -fP data/AE016879.1.fasta -fT data/AE017225.1.fasta -k -1 -WFO2 -v<br/>
 
 Some files are reported in CUDAlign paper.
 
