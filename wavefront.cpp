@@ -79,6 +79,8 @@ char* gfT = NULL;
 
 int verbose = 0;
 
+void usage();
+
 void parseArgs(int argc, char* args[])
 {
 	for (int i=1; i < argc; i++)
@@ -126,7 +128,31 @@ void parseArgs(int argc, char* args[])
 			doWFDD2 = 1;		
 		if (strcmp(args[i], "-v") == 0)
 			verbose = 1;
+		if (strcmp(args[i], "-help") == 0)
+			usage();
 	}
+}
+
+void usage()
+{
+	printf("Levenshtein distance computation between a pattern and a text using [some variant] of the wavefront algorithm\n");
+	printf("Usage:\n");
+	printf("\twavefront.exe <options>\n");
+	printf("\n\nwhere options are :\n");
+	printf("\t-m\tpattern length\n");
+	printf("\t-n\ttext length\n");
+	printf("\t-k\tmaximum allowed errors (reduce memory usage)\n");
+	printf("\t-P\tpattern file\n");
+	printf("\t-T\ttext file\n");
+	printf("\t-DP\ttest the dynamic programming approach with full table (no wavefront)\n");
+	printf("\t-DP2\ttest the dynamic programming approach with 2 columns (no wavefront)\n");
+	printf("\t-WFO\ttest the original wavefront approach\n");
+	printf("\t-WFE\ttest the wavefront approach with extend table precomputation\n");
+	printf("\t-WFD\ttest the wavefront diamond approach\n");
+	printf("\t-WFDD\ttest the wavefront dynamic diamond approach\n");
+	printf("\t-v\tverbose output\n");
+	printf("\t-help\tshows this help\n");
+	exit(0);
 }
 
 int main(int argc, char* args[])
