@@ -10,7 +10,7 @@ public:
 	virtual ~WavefrontDynamicDiamond();
 
 	void setInput(const char* P, const char* T);
-	int getDistance();
+	long getDistance();
 	
 	long* m_W;
 	const char* m_P;
