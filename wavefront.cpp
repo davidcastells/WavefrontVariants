@@ -6,9 +6,12 @@
 #include "LevDP.h"
 #include "LevDP2Cols.h"
 #include "WavefrontOriginal.h"
+#include "WavefrontOriginal2Cols.h"
 #include "WavefrontExtendPrecomputing.h"
-#include "WavefrontDynamicDiamond.h"
 #include "WavefrontDiamond.h"
+#include "WavefrontDiamond2Cols.h"
+#include "WavefrontDynamicDiamond.h"
+#include "WavefrontDynamicDiamond2Cols.h"
 #include "utils.h"
 #include "fasta.h"
 
@@ -57,9 +60,12 @@ void generatePT(char** pP, char** pT, int m, int n)
 int doDP = 0;
 int doDP2 = 0;
 int doWFO = 0;
+int doWFO2 = 0;
 int doWFE = 0;
 int doWFD = 0;
+int doWFD2 = 0;
 int doWFDD = 0;
+int doWFDD2 = 0;
 
 long gM = 100;
 long gN = 100;
@@ -67,6 +73,9 @@ long gK = 100;
 
 char* gP = NULL;
 char* gT = NULL;
+
+char* gfP = NULL;
+char* gfT = NULL;
 
 int verbose = 0;
 
@@ -91,6 +100,10 @@ void parseArgs(int argc, char* args[])
 			gP = args[++i];
 		if (strcmp(args[i], "-T") == 0)
 			gT = args[++i];
+		if (strcmp(args[i], "-fP") == 0)
+			gfP = args[++i];
+		if (strcmp(args[i], "-fT") == 0)
+			gfT = args[++i];
 		
 		
 		if (strcmp(args[i], "-DP") == 0)
@@ -99,13 +112,18 @@ void parseArgs(int argc, char* args[])
 			doDP2 = 1;
 		if (strcmp(args[i], "-WFO") == 0)
 			doWFO = 1;
+		if (strcmp(args[i], "-WFO2") == 0)
+			doWFO2 = 1;
 		if (strcmp(args[i], "-WFE") == 0)
 			doWFE = 1;	
 		if (strcmp(args[i], "-WFD") == 0)
 			doWFD = 1;	
+		if (strcmp(args[i], "-WFD2") == 0)
+			doWFD2 = 1;	
 		if (strcmp(args[i], "-WFDD") == 0)
 			doWFDD = 1;
-		
+		if (strcmp(args[i], "-WFDD2") == 0)
+			doWFDD2 = 1;		
 		if (strcmp(args[i], "-v") == 0)
 			verbose = 1;
 	}
@@ -118,16 +136,26 @@ int main(int argc, char* args[])
 	FastaInfo fastaP;
 	FastaInfo fastaT;
 	
-	if (gP == NULL && gT == NULL)
-		generatePT(&gP, &gT, gM, gN);
-	else
+	if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
 	{
-		fastaP = FastaReader::read(gP);
-		fastaT = FastaReader::read(gT);
+		printf("Generating random Input\n");
+		generatePT(&gP, &gT, gM, gN);
+	}
+	else if (gfP != NULL)
+	{
+		printf("Reading input files\n");
+		fastaP = FastaReader::read(gfP);
+		fastaT = FastaReader::read(gfT);
 
 		gP = fastaP.seq;
 		gT = fastaT.seq;
 		
+		gM = strlen(gP);
+		gN = strlen(gT);
+	}
+	else
+	{
+		printf("Explicit Input\n");
 		gM = strlen(gP);
 		gN = strlen(gT);
 	}
@@ -181,6 +209,18 @@ int main(int argc, char* args[])
 		printf("Wavefront classic distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
 	}
 	
+	// Test Original Wavefront Algorithm 
+	if (doWFO2)	
+	{
+		WavefrontOriginal2Cols wavOrig;
+		wavOrig.setInput(gP, gT, gK);
+		
+		PerformanceLap lap;
+		int ed = wavOrig.getDistance();
+		lap.stop();
+		
+		printf("Wavefront classic 2 cols distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
 
 	// Test Extend Precomputing Wavefront
 	if (doWFE)
@@ -213,10 +253,36 @@ int main(int argc, char* args[])
 		printf("Wavefront Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
 	}
 	
+	// Test Diamond Wavefront 2 Cols
+	if (doWFD2)
+	{
+		WavefrontDiamond2Cols wavDiamond;
+		wavDiamond.setInput(gP, gT, gK);
+		
+		PerformanceLap lap;
+		int ed = wavDiamond.getDistance();
+		lap.stop();
+		
+		printf("Wavefront Diamond 2 cols distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
+	
 	// Test Dynamic Diamond Wavefront
 	if (doWFDD)
 	{
 		WavefrontDynamicDiamond wavDynamicDiamond;
+		wavDynamicDiamond.setInput(gP, gT);
+		
+		PerformanceLap lap;
+		int ed = wavDynamicDiamond.getDistance();
+		lap.stop();
+		
+		printf("Wavefront Dynamic Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+	}
+	
+	// Test Dynamic Diamond Wavefront 2 Cols
+	if (doWFDD2)
+	{
+		WavefrontDynamicDiamond2Cols wavDynamicDiamond;
 		wavDynamicDiamond.setInput(gP, gT);
 		
 		PerformanceLap lap;
