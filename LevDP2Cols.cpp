@@ -1,5 +1,6 @@
 #include "LevDP2Cols.h"
 #include "utils.h"
+#include "PerformanceLap.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -55,12 +56,20 @@ void LevDP2Cols::setInput(const char* P, const char* T, int k)
 long LevDP2Cols::getDistance()
 {
 	printf("computing\n");
-	
+
+	PerformanceLap lap;
+	lap.start();
+	double progress = 0;
+
 	for (long x = 0; x <= m_n; x++)
 	{
 		if (verbose)
-			printf("\rcol %ld/%ld %.2f%%", x, m_n, (x*100.0/m_n) );
-		
+		{
+			double elapsed = lap.stop();
+			double estimated = (elapsed / x) * m_n;
+			printf("\rcol %ld/%ld %.2f%% elapsed: %d s  estimated: %d s    ", x, m_n, (x*100.0/m_n), (int) elapsed, (int) estimated );
+		}
+
 		for (long y = 0; y <= m_m; y++)
 		{
 			if (x == 0)
