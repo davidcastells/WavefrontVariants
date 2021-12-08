@@ -69,7 +69,7 @@ static long polarExistsInW(long d, long r)
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T)
+void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
 {                       
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -273,5 +273,18 @@ end_loop:
 		printf("\n");
 	
 	return ret;
+}
+
+
+
+const char* WavefrontDynamicDiamond2Cols::getDescription()
+{
+	return "Wavefront Dynamic Diamond 2 columns";
+}
+
+char* WavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
 }
 

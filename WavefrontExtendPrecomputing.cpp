@@ -68,7 +68,7 @@ int extend(const char* P, const char* T, int m, int n, int pi, int ti)
 */
 
 
-void WavefrontExtendPrecomputing::setInput(const char* P, const char* T, int k)
+void WavefrontExtendPrecomputing::setInput(const char* P, const char* T, long k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -97,6 +97,7 @@ void WavefrontExtendPrecomputing::setInput(const char* P, const char* T, int k)
 	
 	printf("input set\n");
 
+	precomputeExtend();
 }
 
 void WavefrontExtendPrecomputing::precomputeExtend()
@@ -135,23 +136,23 @@ void WavefrontExtendPrecomputing::precomputeExtend()
 	}*/
 }
 
-int WavefrontExtendPrecomputing::getDistance()
+long WavefrontExtendPrecomputing::getDistance()
 {
-	int final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-	int ret;
+	long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+	long ret;
 	
 	// for the first element, just execute the extend phase
 	m_W[0] = m_E[CARTESIAN_TO_INDEX(0, 0, m_n)];
 	
-	for (int r=1; r < m_k; r++)
+	for (long r=1; r < m_k; r++)
 	{
-		for (int d=-r; d <= r; d++)
+		for (long d=-r; d <= r; d++)
 		{			
-			int diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1, m_k)]  : 0;
-			int left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1, m_k)]  : 0;
-			int diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1, m_k)]  : 0;
+			long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1, m_k)]  : 0;
+			long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1, m_k)]  : 0;
+			long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1, m_k)]  : 0;
 			
-			int compute;
+			long compute;
 			
 			if (d == 0)
 				compute = max3(diag_up, left+1, diag_down);
@@ -168,15 +169,15 @@ int WavefrontExtendPrecomputing::getDistance()
 			
 			//printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  \n ", d, r , diag_up, left, diag_down, compute );
 
-			int ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-			int ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+			long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+			long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 			
 			if ((ex < m_n) && (ey < m_m))
 			{
 					
 				//printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
-				int extendv = m_E[CARTESIAN_TO_INDEX(ey, ex, m_n)]; //extend(m_P, m_T, m_m, m_n, ey, ex);
-				int extended = compute + extendv;
+				long extendv = m_E[CARTESIAN_TO_INDEX(ey, ex, m_n)]; //extend(m_P, m_T, m_m, m_n, ey, ex);
+				long extended = compute + extendv;
 				
 				//printf("Extend (ey=%d ex=%d) = %d\n ", ey, ex, extendv);
 				//printf("index: %d\n", POLAR_W_TO_INDEX(d, r, m_k)),
@@ -208,3 +209,14 @@ end_loop:
 }
 
 
+
+const char* WavefrontExtendPrecomputing::getDescription()
+{
+	return "Wavefront Extend Precomputing";
+}
+
+char* WavefrontExtendPrecomputing::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
+}

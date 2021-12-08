@@ -222,3 +222,14 @@ end_loop:
 	return ret;
 }
 
+
+const char* WavefrontDiamond::getDescription()
+{
+	return "Wavefront Diamond";
+}
+
+char* WavefrontDiamond::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
+}

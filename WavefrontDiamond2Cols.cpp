@@ -233,3 +233,15 @@ end_loop:
 	return ret;
 }
 
+
+
+const char* WavefrontDiamond2Cols::getDescription()
+{
+	return "Wavefront Diamond 2 columns";
+}
+
+char* WavefrontDiamond2Cols::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
+}

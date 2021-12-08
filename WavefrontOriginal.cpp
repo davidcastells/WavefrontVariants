@@ -190,3 +190,15 @@ void test_primitives()
 	
 	exit(0);
 }
+
+const char* WavefrontOriginal::getDescription()
+{
+	return "Wavefront Original";
+}
+
+char* WavefrontOriginal::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
+}
+

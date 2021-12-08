@@ -1,9 +1,11 @@
 #ifndef WAVEFRONT_DIAMOND_H_INCLUDED
 #define WAVEFRONT_DIAMOND_H_INCLUDED
 
+#include "Aligner.h"
+
 /**
 */
-class WavefrontDiamond
+class WavefrontDiamond : public Aligner
 {
 public:
 	WavefrontDiamond();
@@ -11,6 +13,9 @@ public:
 
 	void setInput(const char* P, const char* T, long k);
 	long getDistance();
+	char* getAlignmentPath(long* distance);
+	const char* getDescription(); 
+
 	
 	long* m_W;
 	const char* m_P;

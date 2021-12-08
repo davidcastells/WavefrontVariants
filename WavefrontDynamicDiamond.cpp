@@ -34,9 +34,9 @@ WavefrontDynamicDiamond::~WavefrontDynamicDiamond()
 
 
 
-int WavefrontDynamicDiamond_extend(const char* P, const char* T, int m, int n, int pi, int ti)
+long WavefrontDynamicDiamond_extend(const char* P, const char* T, long m, long n, long pi, long ti)
 {
-	int e = 0;
+	long e = 0;
 	
 	while (pi < m && ti < n)
 	{
@@ -50,23 +50,23 @@ int WavefrontDynamicDiamond_extend(const char* P, const char* T, int m, int n, i
 	return e;
 }
 
-int WavefrontDynamicDiamond_polarExistsInD(int d, int r)
+long WavefrontDynamicDiamond_polarExistsInD(long d, long r)
 {
-	int x = POLAR_D_TO_CARTESIAN_X(d,r);
-	int y = POLAR_D_TO_CARTESIAN_Y(d,r);
+	long x = POLAR_D_TO_CARTESIAN_X(d,r);
+	long y = POLAR_D_TO_CARTESIAN_Y(d,r);
 	
 	return ((x >= 0) && (y>=0));
 }
 
-int WavefrontDynamicDiamond_polarExistsInW(int d, int r)
+long WavefrontDynamicDiamond_polarExistsInW(long d, long r)
 {
-	int x = POLAR_W_TO_CARTESIAN_X(d,r);
-	int y = POLAR_W_TO_CARTESIAN_Y(d,r);
+	long x = POLAR_W_TO_CARTESIAN_X(d,r);
+	long y = POLAR_W_TO_CARTESIAN_Y(d,r);
 	
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontDynamicDiamond::setInput(const char* P, const char* T)
+void WavefrontDynamicDiamond::setInput(const char* P, const char* T, long k)
 {                       
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -266,3 +266,15 @@ end_loop:
 	return ret;
 }
 
+
+
+const char* WavefrontDynamicDiamond::getDescription()
+{
+	return "Wavefront Dynamic Diamond";
+}
+
+char* WavefrontDynamicDiamond::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
+}

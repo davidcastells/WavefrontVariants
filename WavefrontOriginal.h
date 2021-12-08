@@ -1,9 +1,11 @@
 #ifndef WAVEFRONT_ORIGINAL_H_INCLUDED
 #define WAVEFRONT_ORIGINAL_H_INCLUDED
 
+#include "Aligner.h"
+
 /**
 */
-class WavefrontOriginal
+class WavefrontOriginal  : public Aligner
 {
 public:
 	WavefrontOriginal();
@@ -11,7 +13,9 @@ public:
 
 	void setInput(const char* P, const char* T, long k);
 	long getDistance();
-	
+	char* getAlignmentPath(long* distance);
+	const char* getDescription(); 
+
 	long* m_W;
 	const char* m_P;
 	const char* m_T;

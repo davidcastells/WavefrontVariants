@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+
 #include "PerformanceLap.h"
 #include "LevDP.h"
 #include "LevDP2Cols.h"
@@ -66,6 +67,7 @@ int doWFD = 0;
 int doWFD2 = 0;
 int doWFDD = 0;
 int doWFDD2 = 0;
+int doAlignmentPath = 0;
 
 long gM = 100;
 long gN = 100;
@@ -76,6 +78,7 @@ char* gT = NULL;
 
 char* gfP = NULL;
 char* gfT = NULL;
+
 
 int verbose = 0;
 
@@ -96,6 +99,11 @@ void parseArgs(int argc, char* args[])
 		if (strcmp(args[i], "-k") == 0)
 		{
 			gK = atol(args[++i]);
+		}
+		
+		if (strcmp(args[i], "-a") == 0)
+		{
+			doAlignmentPath = 1;
 		}
 		
 		if (strcmp(args[i], "-P") == 0)
@@ -128,7 +136,7 @@ void parseArgs(int argc, char* args[])
 			doWFDD2 = 1;		
 		if (strcmp(args[i], "-v") == 0)
 			verbose = 1;
-		if (strcmp(args[i], "-help") == 0)
+		if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
 			usage();
 	}
 }
@@ -139,21 +147,25 @@ void usage()
 	printf("Usage:\n");
 	printf("\twavefront.exe <options>\n");
 	printf("\n\nwhere options are :\n");
-	printf("\t-m\tpattern length\n");
-	printf("\t-n\ttext length\n");
-	printf("\t-k\tmaximum allowed errors (reduce memory usage)\n");
-	printf("\t-P\tpattern file\n");
-	printf("\t-T\ttext file\n");
-	printf("\t-DP\ttest the dynamic programming approach with full table (no wavefront)\n");
-	printf("\t-DP2\ttest the dynamic programming approach with 2 columns (no wavefront)\n");
-	printf("\t-WFO\ttest the original wavefront approach\n");
-	printf("\t-WFE\ttest the wavefront approach with extend table precomputation\n");
-	printf("\t-WFD\ttest the wavefront diamond approach\n");
-	printf("\t-WFDD\ttest the wavefront dynamic diamond approach\n");
-	printf("\t-v\tverbose output\n");
-	printf("\t-help\tshows this help\n");
+	printf("\t-m\t\tpattern length\n");
+	printf("\t-n\t\ttext length\n");
+	printf("\t-k\t\tmaximum allowed errors (reduce memory usage)\n");
+	printf("\t-P\t\tpattern\n");
+	printf("\t-T\t\ttext\n");
+	printf("\t-fP\t\tpattern file\n");
+	printf("\t-fT\t\ttext file\n");
+	printf("\t-DP\t\ttest the dynamic programming approach with full table (no wavefront)\n");
+	printf("\t-DP2\t\ttest the dynamic programming approach with 2 columns (no wavefront)\n");
+	printf("\t-WFO\t\ttest the original wavefront approach\n");
+	printf("\t-WFE\t\ttest the wavefront approach with extend table precomputation\n");
+	printf("\t-WFD\t\ttest the wavefront diamond approach\n");
+	printf("\t-WFDD\t\ttest the wavefront dynamic diamond approach\n");
+	printf("\t-v\t\tverbose output\n");
+	printf("\t-a\t\tprint alignment path\n");
+	printf("\t-h,--help\tshows this help\n");
 	exit(0);
 }
+
 
 int main(int argc, char* args[])
 {
@@ -198,124 +210,68 @@ int main(int argc, char* args[])
 	printf("m=%d n=%d k=%d\n", gM, gN, gK);
 
 
+
 	// Test Dynamic Programming Levenshtein distance
 	if (doDP)
 	{	
-		LevDP levdp;
-		levdp.setInput(gP, gT, gK);
-		PerformanceLap lap;
-		int ed = levdp.getDistance();
-		lap.stop();
-		
-		printf("Dynamic Programming classic Distance=%d Time=%0.5f seconds\n", ed, lap.lap());
+		LevDP aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
+
 	}
-	
 	// Test Dynamic Programming Levenshtein distance with 2 cols
 	if (doDP2)
 	{	
-		LevDP2Cols levdp2;
-		levdp2.setInput(gP, gT, gK);
-		PerformanceLap lap;
-		int ed = levdp2.getDistance();
-		lap.stop();
-		
-		printf("Dynamic Programming classic Distance=%d Time=%0.5f seconds\n", ed, lap.lap());
+		LevDP2Cols aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
-
+	
 	// Test Original Wavefront Algorithm 
 	if (doWFO)	
 	{
-		WavefrontOriginal wavOrig;
-		wavOrig.setInput(gP, gT, gK);
-		
-		PerformanceLap lap;
-		int ed = wavOrig.getDistance();
-		lap.stop();
-		
-		printf("Wavefront classic distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontOriginal aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Original Wavefront Algorithm 
 	if (doWFO2)	
 	{
-		WavefrontOriginal2Cols wavOrig;
-		wavOrig.setInput(gP, gT, gK);
-		
-		PerformanceLap lap;
-		int ed = wavOrig.getDistance();
-		lap.stop();
-		
-		printf("Wavefront classic 2 cols distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontOriginal2Cols aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 
 	// Test Extend Precomputing Wavefront
 	if (doWFE)
 	{
-		WavefrontExtendPrecomputing wavExtend;
-		wavExtend.setInput(gP, gT, gK);
-		
-		PerformanceLap lap;
-		wavExtend.precomputeExtend();
-		lap.stop();		
-		printf("Precomputing Extend Table. Time: %0.5f seconds\n", lap.lap());
-		
-		lap.start();
-		int ed = wavExtend.getDistance();
-		lap.stop();
-		
-		printf("Wavefront precomputed extend distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontExtendPrecomputing aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Diamond Wavefront
 	if (doWFD)
 	{
-		WavefrontDiamond wavDiamond;
-		wavDiamond.setInput(gP, gT, gK);
-		
-		PerformanceLap lap;
-		int ed = wavDiamond.getDistance();
-		lap.stop();
-		
-		printf("Wavefront Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontDiamond aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Diamond Wavefront 2 Cols
 	if (doWFD2)
 	{
-		WavefrontDiamond2Cols wavDiamond;
-		wavDiamond.setInput(gP, gT, gK);
-		
-		PerformanceLap lap;
-		int ed = wavDiamond.getDistance();
-		lap.stop();
-		
-		printf("Wavefront Diamond 2 cols distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontDiamond2Cols aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Dynamic Diamond Wavefront
 	if (doWFDD)
 	{
-		WavefrontDynamicDiamond wavDynamicDiamond;
-		wavDynamicDiamond.setInput(gP, gT);
-		
-		PerformanceLap lap;
-		int ed = wavDynamicDiamond.getDistance();
-		lap.stop();
-		
-		printf("Wavefront Dynamic Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontDynamicDiamond aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Dynamic Diamond Wavefront 2 Cols
 	if (doWFDD2)
 	{
-		WavefrontDynamicDiamond2Cols wavDynamicDiamond;
-		wavDynamicDiamond.setInput(gP, gT);
-		
-		PerformanceLap lap;
-		int ed = wavDynamicDiamond.getDistance();
-		lap.stop();
-		
-		printf("Wavefront Dynamic Diamond distance=%d. Time: %0.5f seconds\n", ed, lap.lap());
+		WavefrontDynamicDiamond2Cols aligner;
+		aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	return 0;

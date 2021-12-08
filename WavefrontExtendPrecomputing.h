@@ -1,18 +1,22 @@
 #ifndef WAVEFRONT_EXTEND_H_INCLUDED
 #define WAVEFRONT_EXTEND_H_INCLUDED
 
+#include "Aligner.h"
+
 /**
 */
-class WavefrontExtendPrecomputing
+class WavefrontExtendPrecomputing : public Aligner
 {
 public:
 	WavefrontExtendPrecomputing();
 	virtual ~WavefrontExtendPrecomputing();
 
-	void setInput(const char* P, const char* T, int k);
+	void setInput(const char* P, const char* T, long k);
 	void precomputeExtend();
-	int getDistance();
-	
+	long getDistance();
+	char* getAlignmentPath(long* distance);
+	const char* getDescription(); 
+
 	
 	int polarExistsInD(int d, int r);
 	int polarExistsInW(int d, int r);

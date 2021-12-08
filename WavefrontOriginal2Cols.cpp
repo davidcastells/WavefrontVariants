@@ -175,3 +175,14 @@ end_loop:
 	return ret;
 }
 
+
+const char* WavefrontOriginal2Cols::getDescription()
+{
+	return "Wavefront Original 2 columns";
+}
+
+char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
+{
+	printf("Alignment Not implemented yet!\n");
+	exit(0);
+}
