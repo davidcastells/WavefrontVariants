@@ -21,10 +21,10 @@ CUDAlign execution time (GeForce GTX280) = 1,348 s
   
 <table>
   <tr><td>command-line</td><td>Intel(R) Core(TM) <br/>i7-5500U CPU<br/> @ 2.40GHz</td><td>Intel(R) Xeon(R)<br/> Silver 4210 CPU <br/>@ 2.20GHz</td></tr>
-  <tr><td>-DP2</td><td></td><td>101,202</td></tr>
-  <tr><td>-WFO2</td><td></td><td>0.10</td></tr>
-  <tr><td>-WFD2</td><td></td><td>0.12</td></tr>
-  <tr><td>-WFDD2</td><td></td><td>0.12</td></tr>
+  <tr><td>-DP2</td><td>112,785</td><td>101,202</td></tr>
+  <tr><td>-WFO2</td><td>0.108</td><td>0.10</td></tr>
+  <tr><td>-WFD2</td><td>0.109</td><td>0.12</td></tr>
+  <tr><td>-WFDD2</td><td>0.137</td><td>0.12</td></tr>
 </table>
 
 Bigest sequences  32,799,110 x 46,944,323 (distance = ?) <br>
