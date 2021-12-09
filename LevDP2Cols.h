@@ -16,6 +16,8 @@ public:
 	char* getAlignmentPath(long* distance);
 	const char* getDescription(); 
 
+protected:
+        void progress(PerformanceLap& lap, long x, int& lastpercent, long cellsAllocated, long cellsAlive);
 	
 	long* m_D;
 	long m_top;
