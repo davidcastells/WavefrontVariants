@@ -89,63 +89,60 @@ long LevDP::getDistance()
 
 char* LevDP::getAlignmentPath(long* distance)
 {
-	*distance = getDistance();
-	
-	// longest worst case path goes through the table boundary 
-	char* path = new char[m_m+m_n];
-	// not implemented
-	long i = 0;
-	
-	long y = m_m;
-	long x = m_n;
-	
-	while (y > 0 || x > 0)
-	{
-		long ed = m_D[CARTESIAN_TO_INDEX(y, x, m_n+1)];
-		long up = (y>0) ? m_D[CARTESIAN_TO_INDEX(y-1, x, m_n+1)] : ed;
-		long left = (x>0) ? m_D[CARTESIAN_TO_INDEX(y, x-1, m_n+1)] : ed;
-		long diag = (x>0 && y>0) ? m_D[CARTESIAN_TO_INDEX(y-1, x-1, m_n+1)] : ed;
-		long m = min3(up,left, diag);
-		if (diag == m)
-		{
-			if (ed == diag)
-			{
-				path[i++] = '|';	// match
-			}
-			else
-			{
-				path[i++] = 'X';	// unmatch
-			}
-			x--;
-			y--;
-		}
-		else if (left == m)
-		{
-			path[i++] = 'D';		// delete
-			x--;
-		}
-		else 
-		{
-			path[i++] = 'I';		// insert
-			y--;
-		}
-		
-		// printf("%c", path[i-1]); fflush(stdout);
-	}	
-	
-	path[i] = 0;
-	
-	// now reverse
-	long k=i-1;
-	
-	for (int i = 0; i < k/2; i++)
-	{
-		long aux = path[i];
-		path[i] = path[k-i];
-		path[k-i] = aux;
-	}
+    *distance = getDistance();
 
-	return path;
+    // longest worst case path goes through the table boundary 
+    char* path = new char[m_m + m_n];
+    // not implemented
+    long i = 0;
+
+    long y = m_m;
+    long x = m_n;
+
+    while (y > 0 || x > 0)
+    {
+        long ed = m_D[CARTESIAN_TO_INDEX(y, x, m_n + 1)];
+        long up = (y > 0) ? m_D[CARTESIAN_TO_INDEX(y - 1, x, m_n + 1)] : ed;
+        long left = (x > 0) ? m_D[CARTESIAN_TO_INDEX(y, x - 1, m_n + 1)] : ed;
+        long diag = (x > 0 && y > 0) ? m_D[CARTESIAN_TO_INDEX(y - 1, x - 1, m_n + 1)] : ed;
+        long m = min3(up, left, diag);
+        if (diag == m)
+        {
+            if (ed == diag)
+            {
+                path[i++] = '|'; // match
+            } else
+            {
+                path[i++] = 'X'; // unmatch
+            }
+            x--;
+            y--;
+        } else if (left == m)
+        {
+            path[i++] = 'D'; // delete
+            x--;
+        } else
+        {
+            path[i++] = 'I'; // insert
+            y--;
+        }
+
+        // printf("%c", path[i-1]); fflush(stdout);
+    }
+
+    path[i] = 0;
+
+    // now reverse
+    long k = i - 1;
+
+    for (int i = 0; i < k / 2; i++)
+    {
+        long aux = path[i];
+        path[i] = path[k - i];
+        path[k - i] = aux;
+    }
+
+    return path;
 }
 
 const char* LevDP::getDescription()
