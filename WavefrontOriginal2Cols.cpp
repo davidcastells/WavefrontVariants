@@ -99,80 +99,108 @@ void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
 }
 
+void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+{
+#define DECIMALS_PERCENT    1000
+    if (!verbose)
+        return;
+    
+    double elapsed = lap.stop();
+    double estimated = (elapsed / (r*r)) * (m_k*m_k);
+    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
+    
+    
+    if (percent != lastpercent)
+    {
+        //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
+        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+    
+        fflush(stdout);
+        lastpercent = percent;
+    }
+}
+
 long WavefrontOriginal2Cols::getDistance()
 {
-	long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-	long ret;
-	
-	// for the first element, just execute the extend phase
-	m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
-	
-	if (m_W[0] >= m_top)
-		goto end_loop;
-	
-	for (long r=1; r < m_k; r++)
-	{
-		if (verbose)
-			printf("\rr %ld/%ld %.2f%%", r, m_k, (r*100.0/m_k) );
+    PerformanceLap lap;
+    int lastpercent = -1;
+    
+    long cellsAllocated = 0;
+    long cellsAlive = 0;
+    
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    long ret;
 
-		
-		for (long d=-r; d <= r; d++)
-		{			
-			// printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
-			long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-			long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-			long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
-			
-			long compute;
-			
-			if (d == 0)
-				compute = max3(diag_up, left+1, diag_down);
-			else if (d > 0)
-				compute = max3(diag_up, left+1, diag_down+1);
-			else
-				compute = max3(diag_up+1, left+1, diag_down);
-			
-			if ((d == final_d) && compute >= m_top)
-			{
-				ret = r;
-				goto end_loop;
-			}
-			
-			long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-			long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+    // for the first element, just execute the extend phase
+    m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
 
-			if ((ex < m_n) && (ey < m_m))
-			{
-				//printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
-				
-				long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-				long extended = compute + extendv;
-				
-				m_W[POLAR_W_TO_INDEX(d, r)] = extended;
-				
-				//printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
-				//printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
-	
-				
-				if ((d == final_d) && extended >= m_top)
-				{
-					printf("Finishing d=%d r=%d\n", d, r);
-					ret = r;
-					goto end_loop;
-				}
-			}
-			else
-			{
-				m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-			}
-		}
-	}
-	
+    if (m_W[0] >= m_top)
+            goto end_loop;
+
+    for (long r=1; r < m_k; r++)
+    {
+        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+
+        for (long d=-r; d <= r; d++)
+        {			
+            // printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
+            long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+            long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+            long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+
+            long compute;
+
+            if (d == 0)
+                compute = max3(diag_up, left+1, diag_down);
+            else if (d > 0)
+                compute = max3(diag_up, left+1, diag_down+1);
+            else
+                compute = max3(diag_up+1, left+1, diag_down);
+
+            if ((d == final_d) && compute >= m_top)
+            {
+                ret = r;
+                goto end_loop;
+            }
+
+            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+
+            if ((ex < m_n) && (ey < m_m))
+            {
+                //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
+
+                long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                long extended = compute + extendv;
+
+                m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+
+                //printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
+                //printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
+
+
+                if ((d == final_d) && extended >= m_top)
+                {
+                        printf("Finishing d=%d r=%d\n", d, r);
+                        ret = r;
+                        goto end_loop;
+                }
+            }
+            else
+            {
+                m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+            }
+        }
+    }
+    
+    lastpercent--;
+    progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+
 end_loop:
-	if (verbose)
-		printf("\n");
-	
-	return ret;
+    if (verbose)
+            printf("\n");
+
+    return ret;
 }
 
 
@@ -181,8 +209,266 @@ const char* WavefrontOriginal2Cols::getDescription()
 	return "Wavefront Original 2 columns";
 }
 
+class WCellPointer
+{
+public:
+	WCellPointer(long d, long r, WCellPointer* p, char type)
+	{
+		m_d = d;
+		m_r = r;
+		m_p = p;
+                count = 0;
+                m_type = type;
+                
+                //printf("\nallocated d:%ld r:%ld\n", d, r);
+                
+                if (m_p != NULL)
+                {
+                    m_p->count++;
+                    //printf("\ncount d:%ld r:%ld %d\n", m_p->m_d, m_p->m_r, m_p->count);
+                }
+	}
+        
+        static void deleteChain(WCellPointer* target, long& alive)
+        {
+            WCellPointer* p = target;
+            WCellPointer* pp;
+            
+        loop:
+            if (p->count > 0)
+                // do not delete cells with dependencies
+                return;
+        
+            pp = p->m_p;
+            
+            //printf("\ndeleting d:%ld r:%ld\n", p->m_d, p->m_r);
+            delete p;
+            alive--;
+            
+            if (pp == NULL)
+                return;
+            
+            pp->count--;
+            //printf("\ncount d:%ld r:%ld %d\n", pp->m_d, pp->m_r, pp->count);
+            
+            assert(pp->count >= 0);
+            
+            if (pp->count <= 0)
+            {
+                p = pp;
+                goto loop;
+            }
+        }
+        
+        long m_d;
+        long m_r;
+        WCellPointer* m_p;
+        char m_type;
+        char count;
+};
+
 char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
 {
-	printf("Alignment Not implemented yet!\n");
-	exit(0);
+    // longest worst case path goes through the table boundary 
+    char* path = new char[m_m + m_n];
+    
+    long cellsAllocated = 0;
+    long cellsAlive = 0;
+
+    WCellPointer** selected = new WCellPointer*[2*(2*m_k+1)];
+    
+    for (long k = 0; k < 2*(2*m_k+1); k++ )
+        selected[k] = NULL;
+    
+    PerformanceLap lap;
+    int lastpercent = -1;
+    
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    long ret;
+
+    // for the first element, just execute the extend phase
+    m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
+
+    selected[POLAR_W_TO_INDEX(0, 1)] = new WCellPointer(0, 0, NULL, '|');
+    cellsAllocated++;
+    cellsAlive++;
+    
+    if (m_W[0] >= m_top)
+        goto end_loop;
+
+    for (long r=1; r < m_k; r++)
+    {
+        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+
+        for (long d=-r; d <= r; d++)
+        {			
+            // printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
+            int diagUpExist = polarExistsInW(d+1, r-1);
+            int leftExist = polarExistsInW(d,r-1);
+            int diagDownExist = polarExistsInW(d-1,r-1);
+            
+            long diag_up = (diagUpExist) ? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+            long left = (leftExist) ? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+            long diag_down = (diagDownExist)? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+
+            WCellPointer* prev;
+            char type;
+            
+            long compute;
+
+            if (d == 0)
+            {
+                compute = max3(diag_up, left+1, diag_down);
+                if (compute == (left+1) && leftExist)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d, 1)];
+                    type = 'X';
+                }
+                else if (compute == diag_up && diagUpExist)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d+1, 1)];
+                    type = 'D';
+                }
+                else // if (compute == diag_down)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d-1, 1)];
+                    type = 'I';
+                }
+            }
+            else if (d > 0)
+            {
+                compute = max3(diag_up, left+1, diag_down+1);
+                if (compute == (left+1) && leftExist)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d, 1)];
+                    type = 'X';
+                }
+                else if (compute == diag_up && diagUpExist)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d+1, 1)];
+                    type = 'D';
+                }
+                else // if (compute == diag_down)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d-1, 1)];
+                    type = 'I';
+                }
+            }
+            else
+            {
+                compute = max3(diag_up+1, left+1, diag_down);
+                if (compute == (left+1) && leftExist)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d, 1)];
+                    type = 'X';
+                }
+                else if (compute == (diag_up+1) && diagUpExist)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d+1, 1)];
+                    type = 'D';
+                }
+                else // if (compute == diag_down)
+                {
+                    prev = selected[POLAR_W_TO_INDEX(d-1, 1)];
+                    type = 'I';
+                }
+            }
+
+            if ((d == final_d) && compute >= m_top)
+            {
+                m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, prev, type);
+                cellsAllocated++;
+                cellsAlive++;
+                ret = r;
+                goto end_loop;
+            }
+
+            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+
+            if ((ex < m_n) && (ey < m_m))
+            {
+                //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
+
+                long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                long extended = compute + extendv;
+
+                m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, prev, type);
+                cellsAllocated++;
+                cellsAlive++;
+
+                //printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
+                //printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
+
+                if ((d == final_d) && extended >= m_top)
+                {
+                    printf("Finishing d=%d r=%d\n", d, r);
+                    ret = r;
+                    goto end_loop;
+                }
+            }
+            else
+            {
+                m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, prev, type);
+                cellsAllocated++;
+                cellsAlive++;
+            }
+        }
+        
+        // now purge unused links
+        for (long d=-r; d <= r; d++)
+        {
+            if (selected[POLAR_W_TO_INDEX(d, 1)] == NULL)
+                continue;
+            
+            WCellPointer::deleteChain(selected[POLAR_W_TO_INDEX(d, 1)], cellsAlive);
+            selected[POLAR_W_TO_INDEX(d, 1)] = NULL;
+        }
+        
+        // now copy from current to previous
+        for (long d=-r; d <= r; d++)
+        {
+            selected[POLAR_W_TO_INDEX(d, 1)] = selected[POLAR_W_TO_INDEX(d, 0)];
+        }
+    }
+    
+end_loop:
+    lastpercent--;
+    progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+
+    if (verbose)
+        printf("\n");
+
+    WCellPointer* p=selected[POLAR_W_TO_INDEX(final_d, 0)] ;
+    long i=0;
+    
+    while (p != NULL)
+    {
+        WCellPointer* pp = p->m_p;
+        
+        path[i++] = p->m_type;        
+        p = pp;
+    }
+    
+    path[i] = 0;
+    
+    // now reverse
+    long k=i-1;
+
+    for (int i = 0; i < k/2; i++)
+    {
+        long aux = path[i];
+        path[i] = path[k-i];
+        path[k-i] = aux;
+    }
+    
+    
+    *distance = ret;
+    
+    delete [] selected;
+    
+    return path;
 }
