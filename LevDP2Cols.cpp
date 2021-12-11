@@ -171,18 +171,18 @@ void LevDP2Cols::progress(PerformanceLap& lap, long x, int& lastpercent, long ce
 {
 #define DECIMALS_PERCENT    100
     
-    if (verbose)
-    {
-        double elapsed = lap.stop();
-        double estimated = (elapsed / x) * m_n;
-        int percent = (x*100.0*DECIMALS_PERCENT/m_n);
+    if (!verbose)
+        return;
 
-        if (percent != lastpercent)
-        {
-            printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-            fflush(stdout);
-            lastpercent = percent;
-        }
+    double elapsed = lap.stop();
+    double estimated = (elapsed / x) * m_n;
+    int percent = (x*100.0*DECIMALS_PERCENT/m_n);
+
+    if (percent != lastpercent)
+    {
+        printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
+        fflush(stdout);
+        lastpercent = percent;
     }
 }
 
@@ -280,15 +280,15 @@ char* LevDP2Cols::getAlignmentPath(long* distance)
         // now delete cells (from prev) that are not referenced
         for (long y=0; y <= m_m; y++)
         {
-                if (prev[y] == NULL)
-                    continue;
+            if (prev[y] == NULL)
+                continue;
 
-                if (y == m_m) 
-                    if (x == m_n)
-                    {
-                            // this is a special case, do not remove this cell
-                            continue;
-                    }
+            if (y == m_m) 
+                if (x == m_n)
+                {
+                    // this is a special case, do not remove this cell
+                    continue;
+                }
 
                 // the 3 possibilities is that either down, diag, or right depend on them
                 // so when we do see any of this dependency we remove that cell
