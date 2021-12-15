@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <new>
+#include <omp.h>
 
 #define CARTESIAN_TO_INDEX(y, x, w)		((y)*(w) + (x))
 //#define POLAR_D_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_D_TO_CARTESIAN_Y((d), (r)),POLAR_D_TO_CARTESIAN_X((d), (r)),w)
@@ -212,10 +213,11 @@ const char* WavefrontOriginal2Cols::getDescription()
 class WCellPointer
 {
 public:
-	WCellPointer(long d, long r, WCellPointer* p, char type)
+	WCellPointer(long d, long r, long extend, WCellPointer* p, char type)
 	{
 		m_d = d;
 		m_r = r;
+                m_extend = extend;
 		m_p = p;
                 count = 0;
                 m_type = type;
@@ -260,13 +262,23 @@ public:
             }
         }
         
-        long m_d;
-        long m_r;
-        WCellPointer* m_p;
+        long m_d;   // diagonal (y axis of the W pyramid)
+        long m_r;   // distance (x axis of the W pyramid)
+        long m_extend;   // extension
+        WCellPointer* m_p;  // dependent
         char m_type;
-        char count;
+        char count; // number of dependant cells
 };
 
+#define LEFT_EDIT       'X'
+#define DIAG_UP_EDIT    'I'
+#define DIAG_DOWN_EDIT  'D'
+
+/**
+ * 
+ * @param distance
+ * @return 
+ */
 char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
 {
     // longest worst case path goes through the table boundary 
@@ -287,19 +299,21 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
     long ret;
 
     // for the first element, just execute the extend phase
-    m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
+    m_W[POLAR_W_TO_INDEX(0, 0)] = extend(m_P, m_T, m_m, m_n, 0, 0);
 
-    selected[POLAR_W_TO_INDEX(0, 1)] = new WCellPointer(0, 0, NULL, '|');
+    selected[POLAR_W_TO_INDEX(0, 0)] = selected[POLAR_W_TO_INDEX(0, 1)] = new WCellPointer(0, 0, m_W[POLAR_W_TO_INDEX(0, 0)], NULL, '|');
     cellsAllocated++;
     cellsAlive++;
     
-    if (m_W[0] >= m_top)
+    
+    if (m_W[POLAR_W_TO_INDEX(0, 0)] >= m_top)
         goto end_loop;
 
     for (long r=1; r < m_k; r++)
     {
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
 
+        #pragma omp parallel for schedule(static, 100)
         for (long d=-r; d <= r; d++)
         {			
             // printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
@@ -322,17 +336,17 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
                 if (compute == (left+1) && leftExist)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d, 1)];
-                    type = 'X';
+                    type = LEFT_EDIT;
                 }
                 else if (compute == diag_up && diagUpExist)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d+1, 1)];
-                    type = 'D';
+                    type = DIAG_UP_EDIT;
                 }
                 else // if (compute == diag_down)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d-1, 1)];
-                    type = 'I';
+                    type = DIAG_DOWN_EDIT;
                 }
             }
             else if (d > 0)
@@ -341,17 +355,17 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
                 if (compute == (left+1) && leftExist)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d, 1)];
-                    type = 'X';
+                    type = LEFT_EDIT;
                 }
                 else if (compute == diag_up && diagUpExist)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d+1, 1)];
-                    type = 'D';
+                    type = DIAG_UP_EDIT;
                 }
                 else // if (compute == diag_down)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d-1, 1)];
-                    type = 'I';
+                    type = DIAG_DOWN_EDIT;
                 }
             }
             else
@@ -360,28 +374,29 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
                 if (compute == (left+1) && leftExist)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d, 1)];
-                    type = 'X';
+                    type = LEFT_EDIT;
                 }
                 else if (compute == (diag_up+1) && diagUpExist)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d+1, 1)];
-                    type = 'D';
+                    type = DIAG_UP_EDIT;
                 }
                 else // if (compute == diag_down)
                 {
                     prev = selected[POLAR_W_TO_INDEX(d-1, 1)];
-                    type = 'I';
+                    type = DIAG_DOWN_EDIT;
                 }
             }
 
             if ((d == final_d) && compute >= m_top)
             {
                 m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, prev, type);
+                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, 0, prev, type);
                 cellsAllocated++;
                 cellsAlive++;
                 ret = r;
-                goto end_loop;
+                continue;
+                //goto end_loop;
             }
 
             long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
@@ -395,7 +410,7 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
                 long extended = compute + extendv;
 
                 m_W[POLAR_W_TO_INDEX(d, r)] = extended;
-                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, prev, type);
+                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, extendv, prev, type);
                 cellsAllocated++;
                 cellsAlive++;
 
@@ -404,19 +419,23 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
 
                 if ((d == final_d) && extended >= m_top)
                 {
-                    printf("Finishing d=%d r=%d\n", d, r);
+                    printf("Finishing d=%ld r=%ld\n", d, r);
                     ret = r;
-                    goto end_loop;
+                    continue;
+                    //goto end_loop;
                 }
             }
             else
             {
                 m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, prev, type);
+                selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, 0, prev, type);
                 cellsAllocated++;
                 cellsAlive++;
             }
         }
+        
+        if (m_W[POLAR_W_TO_INDEX(final_d, r)] >= m_top)
+            goto end_loop;
         
         // now purge unused links
         for (long d=-r; d <= r; d++)
@@ -449,7 +468,11 @@ end_loop:
     {
         WCellPointer* pp = p->m_p;
         
-        path[i++] = p->m_type;        
+        for (long j = 0; j < p->m_extend; j++)
+            path[i++] = '|';
+        
+        if (pp != NULL)
+            path[i++] = p->m_type;        
         p = pp;
     }
     
