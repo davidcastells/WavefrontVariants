@@ -1,7 +1,9 @@
-OPTIMIZATION=-O3
+OPTIMIZATION=-O2
+
+CFLAGS=-fopenmp
 
 %.o: %.cpp
-	g++ -g $(OPTIMIZATION) -fpermissive -I . -c $< -o $@
+	g++ -g $(OPTIMIZATION) $(CFLAGS) -fpermissive -I . -c $< -o $@
 	
 OBJECTS=wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o WavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o WavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o WavefrontDynamicDiamond2Cols.o fasta.o PerformanceLap.o 
 
@@ -12,4 +14,4 @@ clean:
 	rm -f wavefront
 	
 wavefront: $(OBJECTS)
-	g++ -g $(OPTIMIZATION) $(OBJECTS) -o wavefront
+	g++ -g $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -o wavefront
