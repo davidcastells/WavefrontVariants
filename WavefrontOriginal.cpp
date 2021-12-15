@@ -196,6 +196,12 @@ const char* WavefrontOriginal::getDescription()
 	return "Wavefront Original";
 }
 
+/**
+ * @todo verify, some bugs still
+ * 
+ * @param distance
+ * @return 
+ */
 char* WavefrontOriginal::getAlignmentPath(long* distance)
 {
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
@@ -209,7 +215,6 @@ char* WavefrontOriginal::getAlignmentPath(long* distance)
     
     long d = final_d;
     long r = *distance;
-    
     
     
     while (r > 0)
