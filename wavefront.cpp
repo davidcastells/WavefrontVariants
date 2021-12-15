@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <omp.h>
 
 #include "PerformanceLap.h"
 #include "LevDP.h"
@@ -101,7 +102,7 @@ void parseArgs(int argc, char* args[])
 			gK = atol(args[++i]);
 		}
 		
-		if (strcmp(args[i], "-a") == 0)
+		if ((strcmp(args[i], "-a") == 0) || (strcmp(args[i], "--align")))
 		{
 			doAlignmentPath = 1;
 		}
@@ -147,11 +148,11 @@ void usage()
 	printf("Usage:\n");
 	printf("\twavefront.exe <options>\n");
 	printf("\n\nwhere options are :\n");
-	printf("\t-m\t\tpattern length\n");
-	printf("\t-n\t\ttext length\n");
-	printf("\t-k\t\tmaximum allowed errors (reduce memory usage)\n");
-	printf("\t-P\t\tpattern\n");
-	printf("\t-T\t\ttext\n");
+	printf("\t-m <NUMBER>\tpattern length\n");
+	printf("\t-n <NUMBER>\ttext length\n");
+	printf("\t-k <NUMBER>\tmaximum allowed errors (reduce memory usage)\n");
+	printf("\t-P <STRING>\tpattern\n");
+	printf("\t-T <STRING>\ttext\n");
 	printf("\t-fP\t\tpattern file\n");
 	printf("\t-fT\t\ttext file\n");
 	printf("\t-DP\t\ttest the dynamic programming approach with full table (no wavefront)\n");
@@ -161,7 +162,7 @@ void usage()
 	printf("\t-WFD\t\ttest the wavefront diamond approach\n");
 	printf("\t-WFDD\t\ttest the wavefront dynamic diamond approach\n");
 	printf("\t-v\t\tverbose output\n");
-	printf("\t-a\t\tprint alignment path\n");
+	printf("\t-a,--align\tprint alignment path to transforms T into P\n");
 	printf("\t-h,--help\tshows this help\n");
 	exit(0);
 }
@@ -207,6 +208,7 @@ int main(int argc, char* args[])
 	//printf("P=%s\n", P);
 	//printf("T=%s\n", T);
 	printf("Wavefront algorithm test\n");
+        printf("using %d threads\n", omp_get_max_threads());
 	printf("m=%d n=%d k=%d\n", gM, gN, gK);
 
 
