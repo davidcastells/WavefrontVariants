@@ -34,8 +34,8 @@ CUDAlign execution time (GeForce GTX280) = 75,571 s
   
 <table>
   <tr><td>command-line</td><td>Intel(R) Core(TM) <br/>i7-5500U CPU<br/> @ 2.40GHz</td><td>Intel(R) Xeon(R)<br/> Silver 4210 CPU <br/>@ 2.20GHz</td></tr>
-  <tr><td>-DP2</td><td></td><td>5,705,458</td></tr>
-  <tr><td>-WFO2</td><td></td><td></td></tr>
+  <tr><td>-DP2</td><td>23,999,447</td><td>5,705,458</td></tr>
+  <tr><td>-WFO2</td><td>83,545,918</td><td></td></tr>
   <tr><td>-WFD2</td><td></td><td></td></tr>
   <tr><td>-WFDD2</td><td></td><td></td></tr>
 </table>
