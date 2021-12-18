@@ -73,30 +73,30 @@ static long polarExistsInW(long d, long r)
 
 void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 {
-	m_m = strlen(P);
-	m_n = strlen(T);
-	m_k = k;
+    m_m = strlen(P);
+    m_n = strlen(T);
+    m_k = k;
 
-	long size = 2*(2*k+1);
-	
-	printf("create buffer %.2f GB\n", size*sizeof(long)/(1E9));
+    long size = 2*(2*k+1);
 
-	try
-	{
-		m_W = new long[size];
-	}
-	catch (const std::bad_alloc& e) 
-	{
-		printf("FAILED to allocate memory\n");
-		exit(-1);
-	}
-	
-	assert(m_W);
-	m_top = max2(m_m,m_n);
-	m_P = P;
-	m_T = T;
-	
-	printf("input set\n");
+    printf("create buffer %.2f GB\n", size*sizeof(long)/(1E9));
+
+    try
+    {
+            m_W = new long[size];
+    }
+    catch (const std::bad_alloc& e) 
+    {
+            printf("FAILED to allocate memory\n");
+            exit(-1);
+    }
+
+    assert(m_W);
+    m_top = max2(m_m,m_n);
+    m_P = P;
+    m_T = T;
+
+    printf("input set\n");
 
 }
 
@@ -111,7 +111,7 @@ void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastperc
     int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
     
     
-    if (percent != lastpercent)
+    //if (percent != lastpercent)
     {
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
         printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
@@ -133,9 +133,9 @@ long WavefrontOriginal2Cols::getDistance()
     long ret;
 
     // for the first element, just execute the extend phase
-    m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
+    m_W[POLAR_W_TO_INDEX(0, 0)] = extend(m_P, m_T, m_m, m_n, 0, 0);
 
-    if (m_W[0] >= m_top)
+    if (m_W[POLAR_W_TO_INDEX(0, 0)] >= m_top)
             goto end_loop;
 
     for (long r=1; r < m_k; r++)
@@ -207,7 +207,7 @@ end_loop:
 
 const char* WavefrontOriginal2Cols::getDescription()
 {
-	return "Wavefront Original 2 columns";
+    return "Wavefront Original 2 columns";
 }
 
 class WCellPointer
@@ -226,7 +226,10 @@ public:
                 
                 if (m_p != NULL)
                 {
+                    #pragma omp critical
+                    {
                     m_p->count++;
+                    }
                     //printf("\ncount d:%ld r:%ld %d\n", m_p->m_d, m_p->m_r, m_p->count);
                 }
 	}
@@ -313,7 +316,7 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
     {
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
 
-        #pragma omp parallel for schedule(static, 100)
+        // #pragma omp parallel for schedule(static, 100)
         for (long d=-r; d <= r; d++)
         {			
             // printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
