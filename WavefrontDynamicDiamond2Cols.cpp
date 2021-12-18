@@ -103,176 +103,176 @@ void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k
 
 long WavefrontDynamicDiamond2Cols::getDistance()
 {
-	long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-	long ret;
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    long ret;
 	
-	long kt = m_k;
+    long kt = m_k;
 	
-	// for the first element, just execute the extend phase
-	m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
+    // for the first element, just execute the extend phase
+    m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
 	
-	if (m_W[0] >= m_top)
-		goto end_loop;
+    if (m_W[0] >= m_top)
+        goto end_loop;
 	
-	// opening the diamond
-	for (long r=1; r < kt; r++)
-	{
-		if (verbose)
-			printf("\rr %ld/%ld %.2f%%", r, kt, (r*100.0/kt) );
+    // opening the diamond
+    for (long r=1; r < kt; r++)
+    {
+            if (verbose)
+                    printf("\rr %ld/%ld %.2f%%", r, kt, (r*100.0/kt) );
 
-		long k_odd = kt % 2;
-		long k_half = kt/2;
+            long k_odd = kt % 2;
+            long k_half = kt/2;
 
-		//printf("[%ld] half: %ld \n", r, k_half);
+            //printf("[%ld] half: %ld \n", r, k_half);
 
-		if (r  <= k_half)
-		{
-			
-			for (long d=-r; d <= r; d++)
-			{			
-				long abs_d = max2(final_d-d,d-final_d);
-				
-				long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-				long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-				long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
-				
-				int compute;
-				
-				if (d == 0)
-					compute = max3(diag_up, left+1, diag_down);
-				else if (d > 0)
-					compute = max3(diag_up, left+1, diag_down+1);
-				else
-					compute = max3(diag_up+1, left+1, diag_down);
-				
-				if ((d == final_d) && compute >= m_top)
-				{
-					ret = r;
-					goto end_loop;
-				}
-				
-				int ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-				int ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
-	
-				if ((ex < m_n) && (ey < m_m))
-				{
-					//printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
-					
-					long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-					long extended = compute + extendv;
-					
-					m_W[POLAR_W_TO_INDEX(d, r)] = extended;
-					
-					if ((r + m_top + abs_d - extended)  < kt)
-					{
-						kt = r + m_top + abs_d - extended;
-					}
+            if (r  <= k_half)
+            {
 
-					
-					//printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
-					//printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
-		
-					
-					if ((d == final_d) && extended >= m_top)
-					{
-						//printf("Finishing d=%d r=%d\n", d, r);
-						ret = r;
-						goto end_loop;
-					}
-				}
-				else
-				{
-					m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-					
-					/*if ((r + m_top + abs_d - compute)  < kt)
-					{
-						kt = r + m_top + abs_d - compute;
-					}*/
-				}
-			}
-		}
-		
-		// closing the diamond
-		//if ( r >= k_half)
-		else
-		{
-			//printf("[%ld]\n", r);
-			
-			long cr = kt - (r  + k_odd); // 5 - (2 + 1) = 5 -3 = 2
-			
-			for (long d=-cr; d <= cr; d++)
-			{			
-				long abs_d = max2(final_d-d,d-final_d);
+                    for (long d=-r; d <= r; d++)
+                    {			
+                            long abs_d = max2(final_d-d,d-final_d);
 
-				long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-				long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-				long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
-				
-				long compute;
-				
-				if (d == 0)
-					compute = max3(diag_up, left+1, diag_down);
-				else if (d > 0)
-					compute = max3(diag_up, left+1, diag_down+1);
-				else
-					compute = max3(diag_up+1, left+1, diag_down);
-				
-				if ((d == final_d) && compute >= m_top)
-				{
-					ret = r;
-					goto end_loop;
-				}
-				
-				long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-				long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
-	
-				if ((ex < m_n) && (ey < m_m))
-				{
-					//printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
-					
-					long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-					long extended = compute + extendv;
-					
-					m_W[POLAR_W_TO_INDEX(d, r)] = extended;
-					
-					if ((r + m_top + abs_d - extended)  < kt)
-					{
-						kt = r + m_top + abs_d - extended;
-					}
-						
-					//printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
-					//printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
-		
-					
-					if ((d == final_d) && extended >= m_top)
-					{
-						//printf("Finishing d=%d r=%d\n", d, r);
-						ret = r;
-						goto end_loop;
-					}
-				}
-				else
-				{
-					m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-					
-					/*
-					if ((r + m_top + abs_d - compute)  < kt)
-					{
-						kt = r + m_top + abs_d - compute;
-					}*/
+                            long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+                            long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+                            long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
 
-				}
-			}
-		}
-	}
-	
-	ret = kt;
-	
+                            int compute;
+
+                            if (d == 0)
+                                    compute = max3(diag_up, left+1, diag_down);
+                            else if (d > 0)
+                                    compute = max3(diag_up, left+1, diag_down+1);
+                            else
+                                    compute = max3(diag_up+1, left+1, diag_down);
+
+                            if ((d == final_d) && compute >= m_top)
+                            {
+                                    ret = r;
+                                    goto end_loop;
+                            }
+
+                            int ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+                            int ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+
+                            if ((ex < m_n) && (ey < m_m))
+                            {
+                                    //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
+
+                                    long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                                    long extended = compute + extendv;
+
+                                    m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+
+                                    if ((r + m_top + abs_d - extended)  < kt)
+                                    {
+                                            kt = r + m_top + abs_d - extended;
+                                    }
+
+
+                                    //printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
+                                    //printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
+
+
+                                    if ((d == final_d) && extended >= m_top)
+                                    {
+                                            //printf("Finishing d=%d r=%d\n", d, r);
+                                            ret = r;
+                                            goto end_loop;
+                                    }
+                            }
+                            else
+                            {
+                                    m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+
+                                    /*if ((r + m_top + abs_d - compute)  < kt)
+                                    {
+                                            kt = r + m_top + abs_d - compute;
+                                    }*/
+                            }
+                    }
+            }
+
+            // closing the diamond
+            //if ( r >= k_half)
+            else
+            {
+                    //printf("[%ld]\n", r);
+
+                    long cr = kt - (r  + k_odd); // 5 - (2 + 1) = 5 -3 = 2
+
+                    for (long d=-cr; d <= cr; d++)
+                    {			
+                            long abs_d = max2(final_d-d,d-final_d);
+
+                            long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+                            long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+                            long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+
+                            long compute;
+
+                            if (d == 0)
+                                    compute = max3(diag_up, left+1, diag_down);
+                            else if (d > 0)
+                                    compute = max3(diag_up, left+1, diag_down+1);
+                            else
+                                    compute = max3(diag_up+1, left+1, diag_down);
+
+                            if ((d == final_d) && compute >= m_top)
+                            {
+                                    ret = r;
+                                    goto end_loop;
+                            }
+
+                            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+                            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+
+                            if ((ex < m_n) && (ey < m_m))
+                            {
+                                    //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
+
+                                    long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                                    long extended = compute + extendv;
+
+                                    m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+
+                                    if ((r + m_top + abs_d - extended)  < kt)
+                                    {
+                                            kt = r + m_top + abs_d - extended;
+                                    }
+
+                                    //printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
+                                    //printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
+
+
+                                    if ((d == final_d) && extended >= m_top)
+                                    {
+                                            //printf("Finishing d=%d r=%d\n", d, r);
+                                            ret = r;
+                                            goto end_loop;
+                                    }
+                            }
+                            else
+                            {
+                                    m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+
+                                    /*
+                                    if ((r + m_top + abs_d - compute)  < kt)
+                                    {
+                                            kt = r + m_top + abs_d - compute;
+                                    }*/
+
+                            }
+                    }
+            }
+    }
+
+    ret = kt;
+
 end_loop:
-	if (verbose)
-		printf("\n");
-	
-	return ret;
+    if (verbose)
+            printf("\n");
+
+    return ret;
 }
 
 
