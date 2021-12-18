@@ -59,16 +59,13 @@ long LevDP2Cols::getDistance()
 
 	PerformanceLap lap;
 	lap.start();
-	double progress = 0;
 
+        int lastpercent = -1;
+        
 	for (long x = 0; x <= m_n; x++)
 	{
-		if (verbose)
-		{
-			double elapsed = lap.stop();
-			double estimated = (elapsed / x) * m_n;
-			printf("\rcol %ld/%ld %.2f%% elapsed: %d s  estimated: %d s    ", x, m_n, (x*100.0/m_n), (int) elapsed, (int) estimated );
-		}
+            progress(lap, x, lastpercent, 0, 0);
+
 
 		for (long y = 0; y <= m_m; y++)
 		{
@@ -178,7 +175,7 @@ void LevDP2Cols::progress(PerformanceLap& lap, long x, int& lastpercent, long ce
     double estimated = (elapsed / x) * m_n;
     int percent = (x*100.0*DECIMALS_PERCENT/m_n);
 
-    if (percent != lastpercent)
+    //if (percent != lastpercent)
     {
         printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
         fflush(stdout);
