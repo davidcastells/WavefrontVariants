@@ -1,11 +1,14 @@
 OPTIMIZATION=-O2
 
-CFLAGS=-fopenmp
+CFLAGS=-g -gdwarf-4 
+#-fpic -fopenmp 
+#CFLAGS=-lopencl
 
 %.o: %.cpp
-	g++ -g $(OPTIMIZATION) $(CFLAGS) -fpermissive -I . -c $< -o $@
+	g++  $(OPTIMIZATION) $(CFLAGS) -fpermissive -I . -c $< -o $@
 	
-OBJECTS=wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o WavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o WavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o WavefrontDynamicDiamond2Cols.o fasta.o PerformanceLap.o 
+OBJECTS=wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o WavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o WavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o WavefrontDynamicDiamond2Cols.o fasta.o PerformanceLap.o OCLUtils.o OCLGPUWavefrontOriginal2Cols.o
+#/usr/lib/libOpenCL.dll.a
 
 all: wavefront
 
@@ -14,4 +17,4 @@ clean:
 	rm -f wavefront
 	
 wavefront: $(OBJECTS)
-	g++ -g $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -o wavefront
+	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -lOpenCL.dll -o wavefront
