@@ -16,6 +16,8 @@
 #include "WavefrontDynamicDiamond2Cols.h"
 #include "utils.h"
 #include "fasta.h"
+#include "OCLUtils.h"
+#include "OCLGPUWavefrontOriginal2Cols.h"
 
 int wavefront_classic(const char* P, const char* T, int m, int n, int k);
 int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
@@ -63,6 +65,7 @@ int doDP = 0;
 int doDP2 = 0;
 int doWFO = 0;
 int doWFO2 = 0;
+int doWFO2OCL = 0;
 int doWFE = 0;
 int doWFD = 0;
 int doWFD2 = 0;
@@ -87,59 +90,61 @@ void usage();
 
 void parseArgs(int argc, char* args[])
 {
-	for (int i=1; i < argc; i++)
-	{
-		if (strcmp(args[i], "-m") == 0)
-		{
-			gM = atol(args[++i]);
-		}
-		if (strcmp(args[i], "-n") == 0)
-		{
-			gN = atol(args[++i]);
-		}
-		if (strcmp(args[i], "-k") == 0)
-		{
-			gK = atol(args[++i]);
-		}
-		
-		if ((strcmp(args[i], "-a") == 0) || (strcmp(args[i], "--align")))
-		{
-			doAlignmentPath = 1;
-		}
-		
-		if (strcmp(args[i], "-P") == 0)
-			gP = args[++i];
-		if (strcmp(args[i], "-T") == 0)
-			gT = args[++i];
-		if (strcmp(args[i], "-fP") == 0)
-			gfP = args[++i];
-		if (strcmp(args[i], "-fT") == 0)
-			gfT = args[++i];
-		
-		
-		if (strcmp(args[i], "-DP") == 0)
-			doDP = 1;
-		if (strcmp(args[i], "-DP2") == 0)
-			doDP2 = 1;
-		if (strcmp(args[i], "-WFO") == 0)
-			doWFO = 1;
-		if (strcmp(args[i], "-WFO2") == 0)
-			doWFO2 = 1;
-		if (strcmp(args[i], "-WFE") == 0)
-			doWFE = 1;	
-		if (strcmp(args[i], "-WFD") == 0)
-			doWFD = 1;	
-		if (strcmp(args[i], "-WFD2") == 0)
-			doWFD2 = 1;	
-		if (strcmp(args[i], "-WFDD") == 0)
-			doWFDD = 1;
-		if (strcmp(args[i], "-WFDD2") == 0)
-			doWFDD2 = 1;		
-		if (strcmp(args[i], "-v") == 0)
-			verbose = 1;
-		if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
-			usage();
-	}
+    for (int i=1; i < argc; i++)
+    {
+        //printf("parsing %s\n", args[i]);
+
+        if (strcmp(args[i], "-m") == 0)
+        {
+                gM = atol(args[++i]);
+        }
+        if (strcmp(args[i], "-n") == 0)
+        {
+                gN = atol(args[++i]);
+        }
+        if (strcmp(args[i], "-k") == 0)
+        {
+                gK = atol(args[++i]);
+        }
+
+        if ((strcmp(args[i], "-a") == 0) || (strcmp(args[i], "--align") == 0))
+        {
+                doAlignmentPath = 1;
+        }
+
+        if (strcmp(args[i], "-P") == 0)
+            gP = args[++i];
+        if (strcmp(args[i], "-T") == 0)
+            gT = args[++i];
+        if (strcmp(args[i], "-fP") == 0)
+            gfP = args[++i];
+        if (strcmp(args[i], "-fT") == 0)
+            gfT = args[++i];
+        if (strcmp(args[i], "-DP") == 0)
+            doDP = 1;
+        if (strcmp(args[i], "-DP2") == 0)
+            doDP2 = 1;
+        if (strcmp(args[i], "-WFO") == 0)
+            doWFO = 1;
+        if (strcmp(args[i], "-WFO2") == 0)
+            doWFO2 = 1;
+        if (strcmp(args[i], "-WFO2OCL") == 0)
+            doWFO2OCL = 1;
+        if (strcmp(args[i], "-WFE") == 0)
+            doWFE = 1;	
+        if (strcmp(args[i], "-WFD") == 0)
+            doWFD = 1;	
+        if (strcmp(args[i], "-WFD2") == 0)
+            doWFD2 = 1;	
+        if (strcmp(args[i], "-WFDD") == 0)
+            doWFDD = 1;
+        if (strcmp(args[i], "-WFDD2") == 0)
+            doWFDD2 = 1;		
+        if (strcmp(args[i], "-v") == 0)
+                verbose = 1;
+        if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
+                usage();
+    }
 }
 
 void usage()
@@ -158,6 +163,8 @@ void usage()
 	printf("\t-DP\t\ttest the dynamic programming approach with full table (no wavefront)\n");
 	printf("\t-DP2\t\ttest the dynamic programming approach with 2 columns (no wavefront)\n");
 	printf("\t-WFO\t\ttest the original wavefront approach\n");
+	printf("\t-WFO2\t\ttest the original wavefront approach with 2 columns\n");
+	printf("\t-WFO2OCL\t\ttest the original wavefront approach with 2 columns in OpenCL\n");
 	printf("\t-WFE\t\ttest the wavefront approach with extend table precomputation\n");
 	printf("\t-WFD\t\ttest the wavefront diamond approach\n");
 	printf("\t-WFDD\t\ttest the wavefront dynamic diamond approach\n");
@@ -200,7 +207,7 @@ int main(int argc, char* args[])
 	}
 	
 	if (gK == -1)
-		gK = max2(gM, gN);
+            gK = max2(gM, gN);
 	
 	//long m = strlen(P);
 	//long n = strlen(T);
@@ -208,44 +215,51 @@ int main(int argc, char* args[])
 	//printf("P=%s\n", P);
 	//printf("T=%s\n", T);
 	printf("Wavefront algorithm test\n");
-        printf("using %d threads\n", omp_get_max_threads());
+//        printf("using %d threads\n", omp_get_max_threads());
 	printf("m=%d n=%d k=%d\n", gM, gN, gK);
 
+//        printf("do alignment: %d\n", doAlignmentPath);
 
 
 	// Test Dynamic Programming Levenshtein distance
 	if (doDP)
 	{	
-		LevDP aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
+            LevDP aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
 
 	}
 	// Test Dynamic Programming Levenshtein distance with 2 cols
 	if (doDP2)
 	{	
-		LevDP2Cols aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
+            LevDP2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Original Wavefront Algorithm 
 	if (doWFO)	
 	{
-		WavefrontOriginal aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
+            WavefrontOriginal aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Original Wavefront Algorithm 
 	if (doWFO2)	
 	{
-		WavefrontOriginal2Cols aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
+            WavefrontOriginal2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
+        
+        if (doWFO2OCL)
+        {
+            OCLGPUWavefrontOriginal2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
 
 	// Test Extend Precomputing Wavefront
 	if (doWFE)
 	{
-		WavefrontExtendPrecomputing aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
+            WavefrontExtendPrecomputing aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
 	}
 	
 	// Test Diamond Wavefront
