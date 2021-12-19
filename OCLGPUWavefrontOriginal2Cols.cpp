@@ -42,6 +42,7 @@
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
 extern int verbose;
+extern int gPid;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -50,7 +51,7 @@ OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
     m_buf_W = NULL;
     
     auto ocl = OCLUtils::getInstance();
-    ocl->selectPlatform(0);
+    ocl->selectPlatform(gPid);
     ocl->selectDevice(0);
     
     m_context = ocl->createContext();
