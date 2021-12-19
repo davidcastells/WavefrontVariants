@@ -55,15 +55,16 @@ __kernel void wfo2cols(
         long m_n, 
         long r, 
         long m_k,  
-        __global long* m_W)
+        __global long* m_W,
+        __global long* p_final_d_r)
 {
     size_t gid = get_global_id(0);
     
     //long d = gid - (r-1);
-    long d = gid - m_k;
+    long d = m_k - gid; 
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
-
+            
     if (r == 0)
     {
         if (d == 0)
@@ -89,6 +90,8 @@ __kernel void wfo2cols(
 
         if ((d == final_d) && compute >= m_top)
         {
+            m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+            *p_final_d_r = compute;
             return;
             // ret = r;
             // goto end_loop;
@@ -106,6 +109,7 @@ __kernel void wfo2cols(
 
             if ((d == final_d) && extended >= m_top)
             {
+                *p_final_d_r = extended;
                 return;
                 // printf("Finishing d=%d r=%d\n", d, r);
                 //ret = r;
