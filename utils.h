@@ -6,5 +6,9 @@
 #define min3(a,b,c) min2(a, min2(b, c))
 #define max3(a,b,c) max2(a, max2(b, c))
 
+#define TEXT_SCAPE_BOLD         "\e[1m"
+#define TEXT_SCAPE_ITALIC       "\e[3m"
+#define TEXT_SCAPE_UNDERLINE    "\e[4m"
+#define TEXT_SCAPE_END          "\e[0m"
 
 #endif
