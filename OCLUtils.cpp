@@ -68,25 +68,13 @@ void OCLUtils::selectPlatform(cl_uint selected_platform_index)
     {
             // Get the length for the i-th platform name
             size_t platform_name_length = 0;
-            err = clGetPlatformInfo(
-                    platforms[i],
-                    CL_PLATFORM_NAME,
-                    0,
-                    0,
-                    &platform_name_length
-            );
+            err = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, 0, 0, &platform_name_length);
             CHECK_CL_ERRORS(err);
 
             // Get the name itself for the i-th platform
             // use vector for automatic memory management
             char platform_name[platform_name_length];
-            err = clGetPlatformInfo(
-                    platforms[i],
-                    CL_PLATFORM_NAME,
-                    platform_name_length,
-                    platform_name,
-                    0
-            );
+            err = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, platform_name_length, platform_name, 0 );
             CHECK_CL_ERRORS(err);
 
             printf("    [%d] %s", i,  platform_name);
