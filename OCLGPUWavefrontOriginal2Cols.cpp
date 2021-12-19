@@ -32,6 +32,8 @@
 //#define POLAR_W_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_W_TO_CARTESIAN_Y((d), (r)),POLAR_W_TO_CARTESIAN_X((d), (r)),w)
 
 #define POLAR_W_TO_INDEX(d, r)		((d)+m_k + (((r)%2) * (2*m_k+1)))
+#define INDEX_TO_POLAR_W_D(idx, r)      ((idx) - (m_k) - ((r)%2)*(2*m_k+1))
+
 
 #define POLAR_W_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? -(d) : 0 ) + (r))
 #define POLAR_W_TO_CARTESIAN_X(d,r)		((((d) >= 0)? 0 : (d)) + (r))
@@ -109,6 +111,9 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(long), NULL, &err);
     CHECK_CL_ERRORS(err);
     
+    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(long), NULL, &err);
+    CHECK_CL_ERRORS(err);
+    
     auto ocl = OCLUtils::getInstance();
     ocl->createProgramFromSource("WFO2ColsGPU.cl");
     m_kernel = ocl->createKernel("wfo2cols");
@@ -154,11 +159,15 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
 
     for (long r=0; r < m_k; r++)
     {
+//        printf("\niter:%d top:%ld final_d: %ld index: %ld\n", r, m_top, final_d, POLAR_W_TO_INDEX(final_d, r));
         invokeKernel(r);
 
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
-        if (m_W[POLAR_W_TO_INDEX(final_d, r)] >= m_top)
+//        for (long q = 0; q < h; q++)
+//            printf("d%ld - W[%ld]=%ld\n", INDEX_TO_POLAR_W_D(q,r), q+(r%2)*h, m_W[q+(r%2)*h]);
+        
+        if (m_final_d_r >= m_top)
             return r;
         // printf("final d = %ld\n", m_W[POLAR_W_TO_INDEX(final_d, i)]);
     }
@@ -197,10 +206,13 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
     
     ret = clSetKernelArg(m_kernel, 6, sizeof(cl_mem), (void *)&m_buf_W);
     CHECK_CL_ERRORS(ret);
+
+    ret = clSetKernelArg(m_kernel, 7, sizeof(cl_mem), (void *)&m_buf_final_d_r);
+    CHECK_CL_ERRORS(ret);
     
     m_queue->invokeKernel1D(m_kernel, 2*k+1);
     
-    m_queue->readBuffer(m_buf_W, m_W, size * sizeof(long));
+    m_queue->readBuffer(m_buf_final_d_r, &m_final_d_r, sizeof(long));
 
 }
 
