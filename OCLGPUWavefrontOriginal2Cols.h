@@ -39,12 +39,14 @@ public:
     long m_m;
     long m_k;
     long m_top;
+    long m_final_d_r;
     
     cl_context m_context;
     OCLQueue* m_queue;
     cl_mem m_buf_P;
     cl_mem m_buf_T;
     cl_mem m_buf_W;
+    cl_mem m_buf_final_d_r;
     cl_kernel m_kernel;
 };
 
