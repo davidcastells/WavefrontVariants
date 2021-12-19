@@ -83,6 +83,7 @@ char* gT = NULL;
 char* gfP = NULL;
 char* gfT = NULL;
 
+int gPid = 0;
 
 int verbose = 0;
 
@@ -96,20 +97,25 @@ void parseArgs(int argc, char* args[])
 
         if (strcmp(args[i], "-m") == 0)
         {
-                gM = atol(args[++i]);
+            gM = atol(args[++i]);
         }
         if (strcmp(args[i], "-n") == 0)
         {
-                gN = atol(args[++i]);
+            gN = atol(args[++i]);
         }
         if (strcmp(args[i], "-k") == 0)
         {
-                gK = atol(args[++i]);
+            gK = atol(args[++i]);
         }
 
         if ((strcmp(args[i], "-a") == 0) || (strcmp(args[i], "--align") == 0))
         {
-                doAlignmentPath = 1;
+            doAlignmentPath = 1;
+        }
+        if ((strcmp(args[i], "-pid") == 0) || (strcmp(args[i], "--opencl-platform-id") == 0))
+        {
+            gPid = atol(args[++i]);
+//            printf("gpid = %d\n", gPid);
         }
 
         if (strcmp(args[i], "-P") == 0)
@@ -140,7 +146,7 @@ void parseArgs(int argc, char* args[])
             doWFDD = 1;
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
-        if (strcmp(args[i], "-v") == 0)
+        if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
                 verbose = 1;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
                 usage();
@@ -149,148 +155,189 @@ void parseArgs(int argc, char* args[])
 
 void usage()
 {
-	printf("Levenshtein distance computation between a pattern and a text using [some variant] of the wavefront algorithm\n");
-	printf("Usage:\n");
-	printf("\twavefront.exe <options>\n");
-	printf("\n\nwhere options are :\n");
-	printf("\t-m <NUMBER>\tpattern length\n");
-	printf("\t-n <NUMBER>\ttext length\n");
-	printf("\t-k <NUMBER>\tmaximum allowed errors (reduce memory usage)\n");
-	printf("\t-P <STRING>\tpattern\n");
-	printf("\t-T <STRING>\ttext\n");
-	printf("\t-fP\t\tpattern file\n");
-	printf("\t-fT\t\ttext file\n");
-	printf("\t-DP\t\ttest the dynamic programming approach with full table (no wavefront)\n");
-	printf("\t-DP2\t\ttest the dynamic programming approach with 2 columns (no wavefront)\n");
-	printf("\t-WFO\t\ttest the original wavefront approach\n");
-	printf("\t-WFO2\t\ttest the original wavefront approach with 2 columns\n");
-	printf("\t-WFO2OCL\t\ttest the original wavefront approach with 2 columns in OpenCL\n");
-	printf("\t-WFE\t\ttest the wavefront approach with extend table precomputation\n");
-	printf("\t-WFD\t\ttest the wavefront diamond approach\n");
-	printf("\t-WFDD\t\ttest the wavefront dynamic diamond approach\n");
-	printf("\t-v\t\tverbose output\n");
-	printf("\t-a,--align\tprint alignment path to transforms T into P\n");
-	printf("\t-h,--help\tshows this help\n");
-	exit(0);
+    printf("wavefront - An edit alignment tool\n");
+    printf("==================================\n");
+    printf("    %swavefront%s [OPTIONS]\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("\n");
+    printf("%sDESCRIPTION%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    wavefront - Levenshtein distance computation between a pattern and a text using (some variant)\n");
+    printf("                of the wavefront algorithm\n");
+    printf("                (c) Copyright 2021 by David Castells-Rufas \n");
+    printf("\n");
+    printf("%sOPTIONS\n%s", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s-h,--help%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Display the help message.\n");
+    printf("    %s-v,--verbose%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Verbose output.\n");
+    printf("\n");
+
+    printf("  %sInput Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s-m%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the pattern length. The pattern will be created randomly.\n");
+    printf("    %s-n%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the text length. The text will be created randomly.\n");
+    printf("    %s-P%s %sSTRING%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the pattern.\n");
+    printf("    %s-T%s %sSTRING%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the text.\n");
+    printf("    %s-fP%s %sFILE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the FASTA file containing the pattern.\n");
+    printf("    %s-fT%s %sFILE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the FASTA file containing the text.\n");
+    printf("\n");
+
+    printf("  %sAlignment Method Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the dynamic programming approach with full table (no wavefront)\n");
+    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the dynamic programming approach with 2 columns (no wavefront)\n");
+    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the original wavefront approach.\n");
+    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the original wavefront approach with 2 columns.\n");
+    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the original wavefront approach with 2 columns in OpenCL.\n");
+    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the wavefront approach with extend table precomputation.\n");
+    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the wavefront diamond approach.\n");
+    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the wavefront dynamic diamond approach.\n");
+    printf("\n");
+
+    printf("  %sOperational Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s-k%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Maximum allowed errors (reduce memory usage).\n");
+    printf("    %s-a,--align%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Print alignment path to transforms T into P.\n");
+    printf("\n");
+
+
+    printf("  %sOpenCL Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s-pid,--opencl-platform-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Index of the OpenCL platform to use (select from the list).\n");
+    printf("\n");
+
+    exit(0);
 }
 
 
 int main(int argc, char* args[])
 {
-	parseArgs(argc, args);
+    parseArgs(argc, args);
 
-	FastaInfo fastaP;
-	FastaInfo fastaT;
-	
-	if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
-	{
-		printf("Generating random Input\n");
-		generatePT(&gP, &gT, gM, gN);
-	}
-	else if (gfP != NULL)
-	{
-		printf("Reading input files\n");
-		fastaP = FastaReader::read(gfP);
-		fastaT = FastaReader::read(gfT);
+    FastaInfo fastaP;
+    FastaInfo fastaT;
 
-		gP = fastaP.seq;
-		gT = fastaT.seq;
-		
-		gM = strlen(gP);
-		gN = strlen(gT);
-	}
-	else
-	{
-		printf("Explicit Input\n");
-		gM = strlen(gP);
-		gN = strlen(gT);
-	}
-	
-	if (gK == -1)
-            gK = max2(gM, gN);
-	
-	//long m = strlen(P);
-	//long n = strlen(T);
+    if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
+    {
+            printf("Generating random Input\n");
+            generatePT(&gP, &gT, gM, gN);
+    }
+    else if (gfP != NULL)
+    {
+            printf("Reading input files\n");
+            fastaP = FastaReader::read(gfP);
+            fastaT = FastaReader::read(gfT);
 
-	//printf("P=%s\n", P);
-	//printf("T=%s\n", T);
-	printf("Wavefront algorithm test\n");
+            gP = fastaP.seq;
+            gT = fastaT.seq;
+
+            gM = strlen(gP);
+            gN = strlen(gT);
+    }
+    else
+    {
+            printf("Explicit Input\n");
+            gM = strlen(gP);
+            gN = strlen(gT);
+    }
+
+    if (gK == -1)
+        gK = max2(gM, gN);
+
+    //long m = strlen(P);
+    //long n = strlen(T);
+
+    //printf("P=%s\n", P);
+    //printf("T=%s\n", T);
+    printf("Wavefront algorithm test\n");
 //        printf("using %d threads\n", omp_get_max_threads());
-	printf("m=%d n=%d k=%d\n", gM, gN, gK);
+    printf("m=%d n=%d k=%d\n", gM, gN, gK);
 
 //        printf("do alignment: %d\n", doAlignmentPath);
 
 
-	// Test Dynamic Programming Levenshtein distance
-	if (doDP)
-	{	
-            LevDP aligner;
-            aligner.execute(gP, gT, gK, doAlignmentPath);
+    // Test Dynamic Programming Levenshtein distance
+    if (doDP)
+    {	
+        LevDP aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
 
-	}
-	// Test Dynamic Programming Levenshtein distance with 2 cols
-	if (doDP2)
-	{	
-            LevDP2Cols aligner;
-            aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	// Test Original Wavefront Algorithm 
-	if (doWFO)	
-	{
-            WavefrontOriginal aligner;
-            aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	// Test Original Wavefront Algorithm 
-	if (doWFO2)	
-	{
-            WavefrontOriginal2Cols aligner;
-            aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-        
-        if (doWFO2OCL)
-        {
-            OCLGPUWavefrontOriginal2Cols aligner;
-            aligner.execute(gP, gT, gK, doAlignmentPath);
-        }
+    }
+    // Test Dynamic Programming Levenshtein distance with 2 cols
+    if (doDP2)
+    {	
+        LevDP2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
 
-	// Test Extend Precomputing Wavefront
-	if (doWFE)
-	{
-            WavefrontExtendPrecomputing aligner;
-            aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	// Test Diamond Wavefront
-	if (doWFD)
-	{
-		WavefrontDiamond aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	// Test Diamond Wavefront 2 Cols
-	if (doWFD2)
-	{
-		WavefrontDiamond2Cols aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	// Test Dynamic Diamond Wavefront
-	if (doWFDD)
-	{
-		WavefrontDynamicDiamond aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	// Test Dynamic Diamond Wavefront 2 Cols
-	if (doWFDD2)
-	{
-		WavefrontDynamicDiamond2Cols aligner;
-		aligner.execute(gP, gT, gK, doAlignmentPath);
-	}
-	
-	return 0;
+    // Test Original Wavefront Algorithm 
+    if (doWFO)	
+    {
+        WavefrontOriginal aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    // Test Original Wavefront Algorithm 
+    if (doWFO2)	
+    {
+        WavefrontOriginal2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    if (doWFO2OCL)
+    {
+        OCLGPUWavefrontOriginal2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    // Test Extend Precomputing Wavefront
+    if (doWFE)
+    {
+        WavefrontExtendPrecomputing aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    // Test Diamond Wavefront
+    if (doWFD)
+    {
+        WavefrontDiamond aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    // Test Diamond Wavefront 2 Cols
+    if (doWFD2)
+    {
+        WavefrontDiamond2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    // Test Dynamic Diamond Wavefront
+    if (doWFDD)
+    {
+        WavefrontDynamicDiamond aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    // Test Dynamic Diamond Wavefront 2 Cols
+    if (doWFDD2)
+    {
+        WavefrontDynamicDiamond2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+
+    return 0;
 }
 
 
