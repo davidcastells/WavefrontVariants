@@ -17,4 +17,4 @@ clean:
 	rm -f wavefront
 	
 wavefront: $(OBJECTS)
-	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -lOpenCL.dll -o wavefront
+	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -l OpenCL -o wavefront
