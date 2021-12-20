@@ -28,6 +28,7 @@ public:
     char* getAlignmentPath(long* distance);
     const char* getDescription(); 
 
+    void setCommonArgs();
     void invokeKernel(long r);
     void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
     
