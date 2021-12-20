@@ -158,6 +158,8 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
 
+    setCommonArgs();
+    
     for (long r=0; r < m_k; r++)
     {
 //        printf("\niter:%d top:%ld final_d: %ld index: %ld\n", r, m_top, final_d, POLAR_W_TO_INDEX(final_d, r));
@@ -179,11 +181,8 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     return m_top;
 }
     
-void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
+void OCLGPUWavefrontOriginal2Cols::setCommonArgs()
 {
-    long size = 2*(2*m_k+1);
-
-        
     cl_int ret;
     ret = clSetKernelArg(m_kernel, 0, sizeof(cl_mem), (void *)&m_buf_P);
     CHECK_CL_ERRORS(ret);
@@ -197,8 +196,7 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
     ret = clSetKernelArg(m_kernel, 3, sizeof(cl_long), (void *)&m_n);
     CHECK_CL_ERRORS(ret);
     
-    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
-    CHECK_CL_ERRORS(ret);
+    //long size = 2*(2*m_k+1);
 
     long k = max2(m_m,m_n);
 
@@ -210,6 +208,16 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
 
     ret = clSetKernelArg(m_kernel, 7, sizeof(cl_mem), (void *)&m_buf_final_d_r);
     CHECK_CL_ERRORS(ret);
+}
+
+void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
+{
+    cl_int ret;
+    
+    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
+    CHECK_CL_ERRORS(ret);
+
+    long k = max2(m_m,m_n);
     
     m_queue->invokeKernel1D(m_kernel, 2*k+1);
     
