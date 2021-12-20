@@ -47,7 +47,11 @@ int polarExistsInW(long d, long r)
 }
 
 
-
+/**
+ * This is the initial kernel version.
+ * The host will create as many work items as the height of the column W
+ * most of them will die soon with nothing useful to do
+ */
 __kernel void wfo2cols(
         __global char* P, 
         __global char* T, 
@@ -64,6 +68,10 @@ __kernel void wfo2cols(
     long d = m_k - gid; 
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
+            
+    // early exit for useless work items
+    if (!polarExistsInW(d,r))
+        return;
             
     if (r == 0)
     {
