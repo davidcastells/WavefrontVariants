@@ -374,7 +374,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     cl_device_id device_ids[] = {m_deviceId};
     
-    const char* options = "-g"; //  -cl-opt-disable";
+    const char* options = "-cl-nv-verbose"; //  -cl-opt-disable";
     
     PerformanceLap lap;
     err = clBuildProgram(program, 1, device_ids, options, build_notify, NULL);
