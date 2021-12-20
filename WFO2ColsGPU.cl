@@ -51,6 +51,15 @@ int polarExistsInW(long d, long r)
  * This is the initial kernel version.
  * The host will create as many work items as the height of the column W
  * most of them will die soon with nothing useful to do
+ * 
+ * @param P the pattern
+ * @param T the text
+ * @param m_m the length of the pattern
+ * @param m_n the length of the text
+ * @param r radius of the W column to compute
+ * @param m_k max number of errors we are going to cover
+ * @param m_W memory for the 2 columns of the W pyramid
+ * @param furthest reaching radius 
  */
 __kernel void wfo2cols(
         __global char* P, 
@@ -68,7 +77,11 @@ __kernel void wfo2cols(
     long d = m_k - gid; 
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
-            
+    
+    // we already reached the final point in previous invocations
+    if (p_final_d_r[0] >= m_top)
+        return;
+    
     // early exit for useless work items
     if (!polarExistsInW(d,r))
         return;
@@ -99,10 +112,9 @@ __kernel void wfo2cols(
         if ((d == final_d) && compute >= m_top)
         {
             m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-            *p_final_d_r = compute;
+            p_final_d_r[0] = compute;   // furthest reaching point
+            p_final_d_r[1] = r;         // at edit distance = r
             return;
-            // ret = r;
-            // goto end_loop;
         }
 
         long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
@@ -117,16 +129,16 @@ __kernel void wfo2cols(
 
             if ((d == final_d) && extended >= m_top)
             {
-                *p_final_d_r = extended;
+                p_final_d_r[0] = extended;  // furthest reaching point
+                p_final_d_r[1] = r;         // at edit distance = r
                 return;
-                // printf("Finishing d=%d r=%d\n", d, r);
-                //ret = r;
-                // goto end_loop;
             }
         }
         else
         {
             m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+            // it is impossible to assign the final result here, because it would
+            // have been in the previous compute check
         }
     }
 
