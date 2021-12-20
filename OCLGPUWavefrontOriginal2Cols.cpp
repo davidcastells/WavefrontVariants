@@ -112,7 +112,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(long), NULL, &err);
     CHECK_CL_ERRORS(err);
     
-    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(long), NULL, &err);
+    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2 * sizeof(long), NULL, &err);
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
@@ -143,6 +143,8 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& la
     }
 }
 
+#define NUMBER_OF_INVOCATIONS_PER_READ 10
+
 long OCLGPUWavefrontOriginal2Cols::getDistance()
 {
     PerformanceLap lap;
@@ -162,17 +164,17 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     
     for (long r=0; r < m_k; r++)
     {
-//        printf("\niter:%d top:%ld final_d: %ld index: %ld\n", r, m_top, final_d, POLAR_W_TO_INDEX(final_d, r));
         invokeKernel(r);
 
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
-//        for (long q = 0; q < h; q++)
-//            printf("d%ld - W[%ld]=%ld\n", INDEX_TO_POLAR_W_D(q,r), q+(r%2)*h, m_W[q+(r%2)*h]);
-        
-        if (m_final_d_r >= m_top)
-            return r;
-        // printf("final d = %ld\n", m_W[POLAR_W_TO_INDEX(final_d, i)]);
+        if (r % NUMBER_OF_INVOCATIONS_PER_READ == 0)
+        {
+            m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+            
+            if (m_final_d_r[0] >= m_top)
+                return m_final_d_r[1];
+        }
     }
     
     lastpercent--;
@@ -221,7 +223,7 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
     
     m_queue->invokeKernel1D(m_kernel, 2*k+1);
     
-    m_queue->readBuffer(m_buf_final_d_r, &m_final_d_r, sizeof(long));
+    
 
 }
 
