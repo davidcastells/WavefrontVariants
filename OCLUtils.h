@@ -58,6 +58,9 @@ public:
     static int contains(std::string& str, const char* q);
 
     static std::string errorToStr(cl_int err);
+    
+    std::string getSelectedPlatformName() { return m_selectedPlatformName; }
+    
 private:
     cl_platform_id m_platformId;
     cl_device_id m_deviceId;
