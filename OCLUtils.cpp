@@ -378,7 +378,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     std::string options;
     
     if (contains(m_selectedPlatformName, "Portable Computing Language"))
-        options = ""; 
+        options = "-g -cl-opt-disable"; 
     else if (contains(m_selectedPlatformName, "NVIDIA"))
         options = "-cl-nv-verbose"; 
     
@@ -400,6 +400,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     // Print the log
     printf("BUILD INFO:\n");
+    printf("Compilation flags: %s\n", options.c_str());
     printf(log);
     printf("\n");
     free(log);
