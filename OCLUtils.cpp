@@ -89,6 +89,7 @@ void OCLUtils::selectPlatform(cl_uint selected_platform_index)
             {
                     printf(" [Selected]");
                     selected_platform_index = i;
+                    m_selectedPlatformName = platform_name;
                     // do not stop here, just want to see all available platforms
             }
 
@@ -374,10 +375,15 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     cl_device_id device_ids[] = {m_deviceId};
     
-    const char* options = "-cl-nv-verbose"; //  -cl-opt-disable";
+    std::string options;
+    
+    if (contains(m_selectedPlatformName, "Portable Computing Language"))
+        options = ""; 
+    else if (contains(m_selectedPlatformName, "NVIDIA"))
+        options = "-cl-nv-verbose"; 
     
     PerformanceLap lap;
-    err = clBuildProgram(program, 1, device_ids, options, build_notify, NULL);
+    err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
 //    CHECK_CL_ERRORS(err);
     
     // Determine the size of the log
@@ -414,6 +420,14 @@ cl_kernel OCLUtils::createKernel(const char* name)
     CHECK_CL_ERRORS(ret);
     
     return kernel;
+}
+
+int OCLUtils::contains(std::string& str, const char* q)
+{
+    if (str.find(std::string(q)) != std::string::npos) {
+        return 1;
+    }
+    return 0;
 }
 
 //cl_program OCLUtils::createProgramFromBinary(const char *binary_file_name) 
