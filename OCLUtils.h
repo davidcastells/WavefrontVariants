@@ -34,6 +34,9 @@
 
 class OCLQueue;
 
+/**
+ * OpenCL utils
+ */
 class OCLUtils {
 public:
     OCLUtils();
@@ -52,7 +55,8 @@ public:
     int fileExists(const char *file_name); 
     std::string loadSourceFile(const char* filename);
 
-    
+    static int contains(std::string& str, const char* q);
+
     static std::string errorToStr(cl_int err);
 private:
     cl_platform_id m_platformId;
@@ -60,6 +64,8 @@ private:
     cl_context m_context;
     cl_program m_program;
     std::vector<cl_platform_id> m_platforms;
+    
+    std::string m_selectedPlatformName;
 };
 
 class OCLQueue
