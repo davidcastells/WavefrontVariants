@@ -129,9 +129,12 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& la
         return;
     
     double elapsed = lap.stop();
-    double estimated = (elapsed / r) * (m_k);
-    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
-    
+    // linear model
+//    double estimated = (elapsed / r) * (m_k);
+//    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
+    // square model
+    double estimated = (elapsed / (r*r)) * (m_k*m_k);
+    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
     
     //if (percent != lastpercent)
     {
