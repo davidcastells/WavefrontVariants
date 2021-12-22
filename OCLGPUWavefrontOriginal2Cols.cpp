@@ -219,9 +219,9 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
     ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
     CHECK_CL_ERRORS(ret);
 
-    long k = max2(m_m,m_n);
+    //long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*k+1);
+    m_queue->invokeKernel1D(m_kernel, 2*r+1);
     
     
 
