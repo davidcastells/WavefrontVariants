@@ -1,8 +1,10 @@
 OPTIMIZATION=-O2
 
+OS=`uname -o
 CFLAGS=-g -gdwarf-4 
 #-fpic -fopenmp 
 #CFLAGS=-lopencl
+OPENCL=-l OpenCL
 
 %.o: %.cpp
 	g++  $(OPTIMIZATION) $(CFLAGS) -fpermissive -I . -c $< -o $@
@@ -17,4 +19,4 @@ clean:
 	rm -f wavefront
 	
 wavefront: $(OBJECTS)
-	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -l OpenCL -o wavefront
+	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) $(OPENCL) -o wavefront
