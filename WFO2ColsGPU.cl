@@ -74,7 +74,7 @@ __kernel void wfo2cols(
     size_t gid = get_global_id(0);
     
     //long d = gid - (r-1);
-    long d = m_k - gid; 
+    long d = r - gid; 
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
     
