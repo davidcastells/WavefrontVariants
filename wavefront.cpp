@@ -18,6 +18,7 @@
 #include "fasta.h"
 #include "OCLUtils.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
+#include "OCLFPGAWavefrontOriginal2Cols.h"
 
 int wavefront_classic(const char* P, const char* T, int m, int n, int k);
 int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
@@ -298,8 +299,19 @@ int main(int argc, char* args[])
 
     if (doWFO2OCL)
     {
-        OCLGPUWavefrontOriginal2Cols aligner;
-        aligner.execute(gP, gT, gK, doAlignmentPath);
+        auto ocl = OCLUtils::getInstance();
+        ocl->selectPlatform(gPid);
+        std::string pn = ocl->getSelectedPlatformName();
+        if (OCLUtils::contains(pn, "FPGA"))
+        {
+            OCLFPGAWavefrontOriginal2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
+        else
+        {
+            OCLGPUWavefrontOriginal2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
     }
 
     // Test Extend Precomputing Wavefront
