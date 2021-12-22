@@ -51,7 +51,7 @@ OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
     m_buf_W = NULL;
     
     auto ocl = OCLUtils::getInstance();
-    ocl->selectPlatform(gPid);
+    //ocl->selectPlatform(gPid);
     ocl->selectDevice(0);
     
     m_context = ocl->createContext();
