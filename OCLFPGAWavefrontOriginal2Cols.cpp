@@ -82,7 +82,7 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
     m_k = k;
 
     long size = 2*(2*k+1);
-
+    m_w_h = size;
 
     try
     {
@@ -114,8 +114,17 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
     m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2 * sizeof(long), NULL, &err);
     CHECK_CL_ERRORS(err);
     
-    auto ocl = OCLUtils::getInstance();
-    ocl->createProgramFromBinary("WFO2ColsFPGA.aocx");
+    OCLUtils* ocl = OCLUtils::getInstance();
+    std::string pn = ocl->getSelectedPlatformName();
+    
+    if (OCLUtils::contains(pn, "Emulation"))
+        ocl->createProgramFromSource("WFO2ColsFPGA.cl");
+    else
+        if (OCLUtils::contains(pn, "Intel"))
+            ocl->createProgramFromBinary("WFO2ColsFPGA.aocx");
+        else
+            ocl->createProgramFromBinary("WFO2ColsFPGA.xclbin");
+    
     m_kernel = ocl->createKernel("wfo2cols");
     
     printf("input set\n");
@@ -161,14 +170,25 @@ long OCLFPGAWavefrontOriginal2Cols::getDistance()
     
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m, m_n);
-
+    
+    m_final_d_r[0] = 0;     // furthest reaching point
+    m_final_d_r[1] = m_top; // estimated distance (now, worst case)
+    
     setCommonArgs();
+    
+    m_queue->writeBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long) );
     
     for (long r=0; r < m_k; r++)
     {
         invokeKernel(r);
 
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+        
+//        m_queue->readBuffer(m_buf_W, m_W, 2 * h * sizeof(long));
+//        
+//        printf("\n");
+//        for (long i=0; i < h; i++)
+//            printf("W[%ld]= %ld\n", i, m_W[(r%2)*h + i]);
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
