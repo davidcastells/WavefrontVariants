@@ -299,7 +299,7 @@ int main(int argc, char* args[])
 
     if (doWFO2OCL)
     {
-        auto ocl = OCLUtils::getInstance();
+        OCLUtils* ocl = OCLUtils::getInstance();
         ocl->selectPlatform(gPid);
         std::string pn = ocl->getSelectedPlatformName();
         if (OCLUtils::contains(pn, "FPGA"))

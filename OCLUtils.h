@@ -51,9 +51,13 @@ public:
     void releaseContext(cl_context context);
     OCLQueue* createQueue();
     cl_program createProgramFromSource(const char* sourceFile);
+    cl_program createProgramFromBinary(const char * binaryFile );
+    
     cl_kernel createKernel(const char* name);
     int fileExists(const char *file_name); 
     std::string loadSourceFile(const char* filename);
+    unsigned char* loadBinaryFile(const char* filename, size_t *size);
+    
 
     static int contains(std::string& str, const char* q);
 
