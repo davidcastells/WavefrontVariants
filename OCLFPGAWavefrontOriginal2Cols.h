@@ -39,6 +39,7 @@ public:
     long m_n;
     long m_m;
     long m_k;
+    long m_w_h;         // height of the W pyramid columns
     long m_top;
     long m_final_d_r[2];
     
