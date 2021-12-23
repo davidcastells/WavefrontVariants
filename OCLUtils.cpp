@@ -418,6 +418,8 @@ cl_program OCLUtils::createProgramFromBinary(const char * binaryFile )
       binaries, binary_status, &status);
 
   CHECK_CL_ERRORS(status);
+
+    m_program = program;
   
   printf("create program finished\n");
   fflush(stdout);
@@ -458,7 +460,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     PerformanceLap lap;
     err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
-//    CHECK_CL_ERRORS(err);
+    cl_int compileErr = err;
     
     // Determine the size of the log
     size_t log_size;
@@ -480,6 +482,9 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     free(log);
         
     lap.stop();
+    
+    CHECK_CL_ERRORS(compileErr);
+    
     
     printf("Kernel compilation time: %0.2f seconds\n", lap.lap());
     
