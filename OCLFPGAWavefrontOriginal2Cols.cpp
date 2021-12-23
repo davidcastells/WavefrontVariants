@@ -115,7 +115,7 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
-    ocl->createProgramFromSource("WFO2ColsFPGA.cl");
+    ocl->createProgramFromBinary("WFO2ColsFPGA.aocx");
     m_kernel = ocl->createKernel("wfo2cols");
     
     printf("input set\n");
