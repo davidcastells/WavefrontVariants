@@ -351,6 +351,80 @@ std::string OCLUtils::loadSourceFile(const char* filename)
     return ret;
 }
 
+unsigned char* OCLUtils::loadBinaryFile(const char* filename, size_t *size) 
+{
+  // Open the File
+  FILE* fp;
+  fp = fopen(filename, "rb");
+  
+  if(fp == 0)
+      throw std::runtime_error(std::string("File not found") + std::string(filename));
+
+  // Get the size of the file
+  fseek(fp, 0, SEEK_END);
+  *size = ftell(fp);
+
+  // Allocate space for the binary
+  unsigned char *binary = new unsigned char[*size];
+
+  printf("Binary File Size: %d\n", (int) *size);
+  
+  // Go back to the file start
+  //fseek(fp, 0, SEEK_SET);
+  rewind(fp);
+
+  int total = *size;
+  int offset = 0;
+  int nread = 0;
+  
+  if (fread((void*)binary, 1, *size, fp) < *size)
+    {
+        delete[] binary;
+        fclose(fp);
+        throw std::runtime_error(std::string("### ERROR ### could not load binary"));
+    }
+  
+      printf("Binary Read: [OK]\n");
+
+  return binary;
+}
+
+cl_program OCLUtils::createProgramFromBinary(const char * binaryFile ) 
+{
+    const cl_device_id *devices;
+    unsigned num_devices = 1;
+
+    printf("Loading %s...\n", binaryFile);
+    // printf("For %d devices...\n", num_devices);
+    
+  // Load the binary.
+  size_t binary_size;
+  unsigned char* binary = loadBinaryFile(binaryFile, &binary_size);
+  
+
+  size_t binary_lengths[num_devices];
+  const unsigned char* binaries[num_devices];
+  
+  for (int i = 0; i < num_devices; i++) 
+  {
+    binary_lengths[i] = binary_size;
+    binaries[i] = binary;
+  }
+
+  cl_int status;
+  cl_int binary_status[num_devices];
+
+  cl_program program = clCreateProgramWithBinary(m_context, num_devices, devices, binary_lengths,
+      binaries, binary_status, &status);
+
+  CHECK_CL_ERRORS(status);
+  
+  printf("create program finished\n");
+  fflush(stdout);
+  
+  return program;
+}
+
 cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
 {
     printf("Loading %s\n", sourceFile);
@@ -488,7 +562,11 @@ OCLQueue* OCLUtils::createQueue()
         throw runtime_error("Device is not selected");
 
     cl_int err = 0;
+#ifdef CL_EXT_SUFFIX__VERSION_1_2_DEPRECATED
     cl_command_queue queue = clCreateCommandQueueWithProperties(m_context, m_deviceId, NULL, &err);
+#else
+    cl_command_queue queue = clCreateCommandQueue(m_context, m_deviceId, NULL, &err);
+#endif
     CHECK_CL_ERRORS(err);
     
     return new OCLQueue(queue);
