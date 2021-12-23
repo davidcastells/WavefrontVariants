@@ -391,7 +391,7 @@ unsigned char* OCLUtils::loadBinaryFile(const char* filename, size_t *size)
 
 cl_program OCLUtils::createProgramFromBinary(const char * binaryFile ) 
 {
-    const cl_device_id *devices;
+    const cl_device_id devices[]={ m_deviceId };
     unsigned num_devices = 1;
 
     printf("Loading %s...\n", binaryFile);
@@ -402,14 +402,14 @@ cl_program OCLUtils::createProgramFromBinary(const char * binaryFile )
   unsigned char* binary = loadBinaryFile(binaryFile, &binary_size);
   
 
-  size_t binary_lengths[num_devices];
-  const unsigned char* binaries[num_devices];
+  size_t binary_lengths[] = { binary_size};
+  const unsigned char* binaries[] = {binary};
   
-  for (int i = 0; i < num_devices; i++) 
-  {
-    binary_lengths[i] = binary_size;
-    binaries[i] = binary;
-  }
+//  for (int i = 0; i < num_devices; i++) 
+//  {
+//    binary_lengths[i] = binary_size;
+//    binaries[i] = binary;
+//  }
 
   cl_int status;
   cl_int binary_status[num_devices];
