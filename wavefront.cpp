@@ -302,7 +302,7 @@ int main(int argc, char* args[])
         OCLUtils* ocl = OCLUtils::getInstance();
         ocl->selectPlatform(gPid);
         std::string pn = ocl->getSelectedPlatformName();
-        if (OCLUtils::contains(pn, "FPGA"))
+        if (OCLUtils::contains(pn, "FPGA") || OCLUtils::contains(pn, "Xilinx"))
         {
             OCLFPGAWavefrontOriginal2Cols aligner;
             aligner.execute(gP, gT, gK, doAlignmentPath);
