@@ -31,8 +31,8 @@
 
 //#define POLAR_W_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_W_TO_CARTESIAN_Y((d), (r)),POLAR_W_TO_CARTESIAN_X((d), (r)),w)
 
-#define POLAR_W_TO_INDEX(d, r)		((d)+m_k + (((r)%2) * (2*m_k+1)))
-#define INDEX_TO_POLAR_W_D(idx, r)      ((idx) - (m_k) - ((r)%2)*(2*m_k+1))
+#define POLAR_W_TO_INDEX(d, r)		((d)+m_k + (((r)%(2*tileLen)) * (2*m_k+1)))
+#define INDEX_TO_POLAR_W_D(idx, r)      ((idx) - (m_k) - ((r)%(2*tileLen))*(2*m_k+1))
 
 
 #define POLAR_W_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? -(d) : 0 ) + (r))
@@ -81,9 +81,9 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
+    m_tileLen = 3;
 
-    long size = 2*(2*k+1);
-
+    long size = (2*m_tileLen)*(2*k+1);
 
     try
     {
@@ -155,6 +155,7 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     long cellsAllocated = 0;
     long cellsAlive = 0;
     
+    
     m_queue->writeBuffer(m_buf_P, (void*) m_P, m_m);
     m_queue->writeBuffer(m_buf_T, (void*) m_T, m_n);
     
@@ -164,8 +165,12 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     long m_top = max2(m_m,m_n);
 
     setCommonArgs();
-    
-    for (long r=0; r < m_k; r++)
+
+    m_final_d_r[0] = 0;     // furthest reaching point
+    m_final_d_r[1] = m_top; // estimated distance (now, worst case)
+    m_queue->writeBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long) );
+
+    for (long r=0; r < m_k; r+= m_tileLen)
     {
         invokeKernel(r);
 
@@ -213,6 +218,9 @@ void OCLGPUWavefrontOriginal2Cols::setCommonArgs()
 
     ret = clSetKernelArg(m_kernel, 7, sizeof(cl_mem), (void *)&m_buf_final_d_r);
     CHECK_CL_ERRORS(ret);
+    
+    ret = clSetKernelArg(m_kernel, 8, sizeof(cl_int), (void *)&m_tileLen);
+    CHECK_CL_ERRORS(ret);
 }
 
 void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
@@ -224,7 +232,7 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
 
     //long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*r+1);
+    m_queue->invokeKernel1D(m_kernel, (r/m_tileLen)+1);
     
     
 
