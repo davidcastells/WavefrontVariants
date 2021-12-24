@@ -171,11 +171,11 @@ long OCLFPGAWavefrontOriginal2Cols::getDistance()
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m, m_n);
     
-    m_final_d_r[0] = 0;     // furthest reaching point
-    m_final_d_r[1] = m_top; // estimated distance (now, worst case)
     
     setCommonArgs();
     
+    m_final_d_r[0] = 0;     // furthest reaching point
+    m_final_d_r[1] = m_top; // estimated distance (now, worst case)
     m_queue->writeBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long) );
     
     for (long r=0; r < m_k; r++)
