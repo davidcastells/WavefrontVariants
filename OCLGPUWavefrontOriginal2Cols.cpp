@@ -43,6 +43,7 @@
 
 extern int verbose;
 extern int gPid;
+extern int gDid;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -52,7 +53,7 @@ OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
     
     auto ocl = OCLUtils::getInstance();
     //ocl->selectPlatform(gPid);
-    ocl->selectDevice(0);
+    ocl->selectDevice(gDid);
     
     m_context = ocl->createContext();
     m_queue = ocl->createQueue();
