@@ -40,6 +40,7 @@
 
 extern int verbose;
 extern int gPid;
+extern int gDid;
 
 OCLFPGAWavefrontOriginal2Cols::OCLFPGAWavefrontOriginal2Cols()
 {
@@ -49,7 +50,7 @@ OCLFPGAWavefrontOriginal2Cols::OCLFPGAWavefrontOriginal2Cols()
     
     auto ocl = OCLUtils::getInstance();
     //ocl->selectPlatform(gPid);
-    ocl->selectDevice(0);
+    ocl->selectDevice(gDid);
     
     m_context = ocl->createContext();
     m_queue = ocl->createQueue();
