@@ -247,5 +247,5 @@ char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(long* distance)
     
 const char* OCLGPUWavefrontOriginal2Cols::getDescription()
 {
-    return "Wavefront Original 2 columns in OpenCL";
+    return "Wavefront Original 2 columns [ocl_tiles] in OpenCL";
 }
