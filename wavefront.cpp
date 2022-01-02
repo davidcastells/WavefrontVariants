@@ -84,7 +84,8 @@ char* gT = NULL;
 char* gfP = NULL;
 char* gfT = NULL;
 
-int gPid = 0;
+int gPid = 0;   // OpenCL platform ID
+int gDid = 0;   // OpenCL device ID
 
 int verbose = 0;
 
@@ -117,6 +118,10 @@ void parseArgs(int argc, char* args[])
         {
             gPid = atol(args[++i]);
 //            printf("gpid = %d\n", gPid);
+        }
+        if ((strcmp(args[i], "-did") == 0) || (strcmp(args[i], "--opencl-device-id") == 0))
+        {
+            gDid = atol(args[++i]);
         }
 
         if (strcmp(args[i], "-P") == 0)
@@ -217,6 +222,8 @@ void usage()
     printf("  %sOpenCL Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("    %s-pid,--opencl-platform-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Index of the OpenCL platform to use (select from the list).\n");
+    printf("    %s-did,--opencl-device-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Index of the OpenCL device to use (select from the list).\n");
     printf("\n");
 
     exit(0);
