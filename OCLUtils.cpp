@@ -427,14 +427,14 @@ cl_program OCLUtils::createProgramFromBinary(const char * binaryFile )
   return program;
 }
 
-cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
+cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string& options)
 {
     printf("Loading %s\n", sourceFile);
     cl_program program;
       
     std::string source = loadSourceFile(sourceFile);
     
-    if (verbose)
+    if (verbose > 1)
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
@@ -451,12 +451,10 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     cl_device_id device_ids[] = {m_deviceId};
     
-    std::string options;
-    
     if (contains(m_selectedPlatformName, "Portable Computing Language"))
-        options = "-g -cl-opt-disable"; 
+        options += "-g -cl-opt-disable"; 
     else if (contains(m_selectedPlatformName, "NVIDIA"))
-        options = "-cl-nv-verbose"; 
+        options += "-cl-nv-verbose"; 
     
     PerformanceLap lap;
     err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
