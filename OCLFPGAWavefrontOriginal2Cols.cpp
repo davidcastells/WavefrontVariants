@@ -118,8 +118,10 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
     OCLUtils* ocl = OCLUtils::getInstance();
     std::string pn = ocl->getSelectedPlatformName();
     
+    std::string options = "-D TILE_LEN=" + std::to_string(m_tileLen) + " ";
+
     if (OCLUtils::contains(pn, "Emulation"))
-        ocl->createProgramFromSource("WFO2ColsFPGA.cl");
+        ocl->createProgramFromSource("WFO2ColsFPGA.cl", options);
     else
         if (OCLUtils::contains(pn, "Intel"))
             ocl->createProgramFromBinary("WFO2ColsFPGA.aocx");
