@@ -117,7 +117,10 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
-    ocl->createProgramFromSource("WFO2ColsGPU.cl");
+        
+    std::string options = "-D TILE_LEN=" + std::to_string(m_tileLen) + " ";
+
+    ocl->createProgramFromSource("WFO2ColsGPU.cl", options);
     m_kernel = ocl->createKernel("wfo2cols");
     
     printf("input set\n");
@@ -247,5 +250,5 @@ char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(long* distance)
     
 const char* OCLGPUWavefrontOriginal2Cols::getDescription()
 {
-    return "Wavefront Original 2 columns [ocl_tiles] in OpenCL";
+    return "Wavefront Original 2 columns [ocl_local_tiles] in OpenCL";
 }
