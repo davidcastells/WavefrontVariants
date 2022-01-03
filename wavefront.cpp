@@ -48,16 +48,16 @@ void generatePT(char** pP, char** pT, int m, int n)
 	
 	for (int k=0; k < 3; k++)
 	{
-		// now copy fragments of P in T, to reduce errors
-		int lenCopy = (rand() % min2(m,n)) / 1.3;
-		int startP = rand() % (m-lenCopy);
-		int startT = startP + (rand() % (200));
-		
-		
-		printf("copy fragment %d\n", lenCopy);
-		for (int i=0; i < lenCopy; i++)
-			if (startT+i < n)
-				(*pT)[startT+i] = (*pP)[startP+i]; 
+            // now copy fragments of P in T, to reduce errors
+            int lenCopy = (rand() % min2(m,n)) / 1.3;
+            int startP = rand() % (m-lenCopy);
+            int startT = startP + (rand() % (200));
+
+
+            printf("copy fragment %d\n", lenCopy);
+            for (int i=0; i < lenCopy; i++)
+                if (startT+i < n)
+                    (*pT)[startT+i] = (*pP)[startP+i]; 
 	}
 }
 
@@ -153,9 +153,11 @@ void parseArgs(int argc, char* args[])
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
-                verbose = 1;
+            verbose = 1;
+        if ((strcmp(args[i], "-vv") == 0) || (strcmp(args[i], "--verbose-2") == 0))
+            verbose = 2;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
-                usage();
+            usage();
     }
 }
 
@@ -175,6 +177,8 @@ void usage()
     printf("        Display the help message.\n");
     printf("    %s-v,--verbose%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Verbose output.\n");
+    printf("    %s-vv,--verbose-2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        More verbose output.\n");
     printf("\n");
 
     printf("  %sInput Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
