@@ -41,6 +41,7 @@ public:
     long m_k;
     long m_w_h;         // height of the W pyramid columns
     long m_top;
+    int m_tileLen;
     long m_final_d_r[2];
     
     cl_context m_context;
