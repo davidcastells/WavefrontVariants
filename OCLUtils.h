@@ -50,7 +50,7 @@ public:
     void releaseMemObject(cl_mem& p);
     void releaseContext(cl_context context);
     OCLQueue* createQueue();
-    cl_program createProgramFromSource(const char* sourceFile);
+    cl_program createProgramFromSource(const char* sourceFile, std::string& options);
     cl_program createProgramFromBinary(const char * binaryFile );
     
     cl_kernel createKernel(const char* name);
