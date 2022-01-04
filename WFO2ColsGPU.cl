@@ -89,8 +89,6 @@ __kernel void wfo2cols(
         __global long* p_final_d_r,
         int tileLen)
 {
-
-    
     __local long localW[2*TILE_LEN*TILE_LEN];
 
     size_t gid = get_global_id(0);
@@ -101,7 +99,9 @@ __kernel void wfo2cols(
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     int doRun = 1;
 
-    printf("gid: %ld - final_d: %ld \n", gid, final_d);
+#ifdef DEBUG
+    printf("\ngid: %ld - final_d: %ld \n", gid, final_d);
+#endif
     // printf("\n[POCL] d0=%ld r0=%ld  cv=%ld\n", d0, r0, p_final_d_r[0]);
     
     // we already reached the final point in previous invocations
@@ -133,27 +133,40 @@ void writeToW(__global long* m_W, __local long* localW, long d, long r, long v, 
     
     int idx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
     
+#ifdef DEBUG
     printf("WR(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld\n", 
             d, r, tileLen, 
             ld, lr, tileLen, idx, v);
+#endif
     
     //if (isInLocalBlockBoundary(ld, lr, tileLen))
-    {
-        localW[POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen)] = v;
-    }
+//    {
+//        localW[POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen)] = v;
+//    }
 }
 
 long readFromW(__global long* m_W, __local long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
 {
-    if (isInLocalBlock(ld, lr, tileLen))
-    {
-        long v = localW[POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen)];
-        if (v != m_W[POLAR_W_TO_INDEX(d, r)])
-            printf("ERROR! in %ld, %ld = %ld\n", d, r, v);
-        
-        return v;
-    }
-    else
+    int idx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+
+    long v = m_W[POLAR_W_TO_INDEX(d, r)];
+    
+#ifdef DEBUG
+//    printf("RD(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld\n", 
+//            d, r, tileLen, 
+//            ld, lr, tileLen, idx, v);
+#endif
+    
+//    if (isInLocalBlock(ld, lr, tileLen))
+//    {
+//        long v = localW[POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen)];
+//
+////        if (v != m_W[POLAR_W_TO_INDEX(d, r)])
+////            printf("ERROR! in %ld, %ld = %ld\n", d, r, v);
+//        
+//        return v;
+//    }
+//    else
         return m_W[POLAR_W_TO_INDEX(d, r)];
 }
 
@@ -204,7 +217,7 @@ void processCell(__global char* P,
 
         if ((d == final_d) && compute >= m_top)
         {
-            printf("COMPLETE\n");
+//            printf("COMPLETE\n");
             WRITE_W(d, r, compute);
             p_final_d_r[0] = compute;   // furthest reaching point
             p_final_d_r[1] = r;         // at edit distance = r
@@ -224,7 +237,7 @@ void processCell(__global char* P,
 
             if ((d == final_d) && extended >= m_top)
             {
-                printf("COMPLETE\n");
+//                printf("COMPLETE\n");
                 p_final_d_r[0] = extended;  // furthest reaching point
                 p_final_d_r[1] = r;         // at edit distance = r
                 *doRun = 0;
