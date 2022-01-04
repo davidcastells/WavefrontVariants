@@ -120,6 +120,10 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
         
     std::string options = "-D TILE_LEN=" + std::to_string(m_tileLen) + " ";
 
+    std::string plName = ocl->getSelectedPlatformName();
+    if (OCLUtils::contains(plName, "Portable Computing Language") && (verbose > 1))
+        options += " -D DEBUG ";
+    
     ocl->createProgramFromSource("WFO2ColsGPU.cl", options);
     m_kernel = ocl->createKernel("wfo2cols");
     
@@ -184,6 +188,13 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         {
             m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
             
+            if (verbose > 1)
+            {
+                printf("Check to continue\nTop: %ld\n", m_top);
+                printf("Fur. reaching point: %ld\n", m_final_d_r[0]);
+                printf("Edit distance: %ld\n", m_final_d_r[1]);
+            }
+            
             if (m_final_d_r[0] >= m_top)
                 return m_final_d_r[1];
         }
@@ -191,6 +202,18 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     
     lastpercent--;
     progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+
+    m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+            
+    if (verbose > 1)
+    {
+        printf("Check to continue\nTop: %ld\n", m_top);
+        printf("Fur. reaching point: %ld\n", m_final_d_r[0]);
+        printf("Edit distance: %ld\n", m_final_d_r[1]);
+    }
+
+    if (m_final_d_r[0] >= m_top)
+        return m_final_d_r[1];
 
     return m_top;
 }
