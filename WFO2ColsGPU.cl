@@ -22,8 +22,33 @@
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
+/**
+ * 
+ * @param ld local diagonal coordinate
+ * @param lr local radius coordinate
+ * @param tileLen
+ * @return 
+ */
 int isInLocalBlock(int ld, int lr, int tileLen)
 {
+    if (lr < 0)
+        return 0;
+    
+    // first check that there are in bounds
+    if (lr >= tileLen)
+    {
+        // decreasing tile 
+        int dec_lr = 2*tileLen - lr - 1;
+        
+        if (abs(ld) > dec_lr)
+            return 0;
+    }
+    else
+    {
+        if (abs(ld) > lr)
+            return 0;
+    }
+    
     // return whether the cell is in the local memory 
     int idx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
     return ((idx >= 0) && (idx <= 2*tileLen*tileLen));
@@ -31,8 +56,8 @@ int isInLocalBlock(int ld, int lr, int tileLen)
 
 int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 {
-    int lrp = (lr >= tileLen) ? 2*tileLen-lr-1 : lr;
-    return (abs(ld) == lrp);
+    int maxd = 2*tileLen-lr-1;
+    return ((abs(ld) == maxd) || (abs(ld-1) == maxd));
 }
 
 long extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
@@ -128,46 +153,53 @@ __kernel void wfo2cols(
 
 
 void writeToW(__global long* m_W, __local long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
-{
-    m_W[POLAR_W_TO_INDEX(d, r)] = v;
-    
-    int idx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+{    
+    int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+
+    localW[lidx] = v;
+
+    int inBoundary = isInLocalBlockBoundary(ld, lr, tileLen);
     
 #ifdef DEBUG
-    printf("WR(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld\n", 
+    printf("WR(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld (in boundary: %d)\n", 
             d, r, tileLen, 
-            ld, lr, tileLen, idx, v);
+            ld, lr, tileLen, lidx, v, inBoundary);
 #endif
     
-    //if (isInLocalBlockBoundary(ld, lr, tileLen))
-//    {
-//        localW[POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen)] = v;
-//    }
+    if (inBoundary)
+    {
+        m_W[POLAR_W_TO_INDEX(d, r)] = v;
+    }
 }
 
 long readFromW(__global long* m_W, __local long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
 {
-    int idx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
-
-    long v = m_W[POLAR_W_TO_INDEX(d, r)];
+    int isInLocal = isInLocalBlock(ld, lr, tileLen);
     
+    if (isInLocal)
+    {
+        int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+        long lv = localW[lidx];
+
 #ifdef DEBUG
-//    printf("RD(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld\n", 
-//            d, r, tileLen, 
-//            ld, lr, tileLen, idx, v);
+    
+        printf("RD(%ld, %ld, %d) -> local RD(%d, %d, %d) -> RD idx(%d) = %ld\n", 
+            d, r, tileLen, 
+            ld, lr, tileLen, lidx, lv);
 #endif
     
-//    if (isInLocalBlock(ld, lr, tileLen))
-//    {
-//        long v = localW[POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen)];
-//
-////        if (v != m_W[POLAR_W_TO_INDEX(d, r)])
-////            printf("ERROR! in %ld, %ld = %ld\n", d, r, v);
-//        
-//        return v;
-//    }
-//    else
-        return m_W[POLAR_W_TO_INDEX(d, r)];
+        return lv;
+    }
+    else
+    {
+        long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+        
+#ifdef DEBUG
+        printf("RD(%ld, %ld, %d) ->  = %ld\n", 
+            d, r, tileLen, gv);
+#endif    
+        return gv;
+    }
 }
 
 void processCell(__global char* P, 
