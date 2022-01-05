@@ -245,6 +245,12 @@ int main(int argc, char* args[])
     {
             printf("Generating random Input\n");
             generatePT(&gP, &gT, gM, gN);
+            
+            if (verbose > 1)
+            {
+                printf("P: %s\n", gP);
+                printf("T: %s\n", gT);
+            }
     }
     else if (gfP != NULL)
     {
