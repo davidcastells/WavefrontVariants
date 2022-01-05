@@ -57,7 +57,14 @@ int isInLocalBlock(int ld, int lr, int tileLen)
 int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 {
     int maxd = 2*tileLen-lr-1;
-    return ((abs(ld) == maxd) || (abs(ld-1) == maxd));
+    if (abs(ld) == maxd)
+        return 1;
+    if ((ld >= 0) && (abs(ld+1) == maxd))
+        return 1;
+    if ((ld <= 0) && (abs(ld-1) == maxd))
+        return 1;
+    
+    return 0;
 }
 
 long extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
