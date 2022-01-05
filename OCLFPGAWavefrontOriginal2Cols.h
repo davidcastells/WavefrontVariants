@@ -34,10 +34,8 @@ public:
     
 	
     long* m_W;
-    const char* m_P;
-    const char* m_T;
-    long m_n;
-    long m_m;
+    
+    
     long m_k;
     long m_w_h;         // height of the W pyramid columns
     long m_top;
