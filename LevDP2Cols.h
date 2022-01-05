@@ -8,24 +8,22 @@
 class LevDP2Cols  : public Aligner
 {
 public:
-	LevDP2Cols();
-	virtual ~LevDP2Cols();
+    LevDP2Cols();
+    virtual ~LevDP2Cols();
 
-	void setInput(const char* P, const char* T, long k);
-	long getDistance();
-	char* getAlignmentPath(long* distance);
-	const char* getDescription(); 
+    void setInput(const char* P, const char* T, long k);
+    long getDistance();
+    char* getAlignmentPath(long* distance);
+    const char* getDescription(); 
 
 protected:
-        void progress(PerformanceLap& lap, long x, int& lastpercent, long cellsAllocated, long cellsAlive);
-	
-	long* m_D;
-	long m_top;
-	const char* m_P;
-	const char* m_T;
-	long m_n;
-	long m_m;
-	long m_k;
+    void progress(PerformanceLap& lap, long x, int& lastpercent, long cellsAllocated, long cellsAlive);
+
+    long* m_D;
+    long m_top;
+    
+    
+    long m_k;
 };
 
 #endif
