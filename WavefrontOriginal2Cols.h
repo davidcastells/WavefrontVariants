@@ -20,10 +20,7 @@ protected:
     void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
 
     long* m_W;
-    const char* m_P;
-    const char* m_T;
-    long m_n;
-    long m_m;
+    
     long m_k;
     long m_top;
 };
