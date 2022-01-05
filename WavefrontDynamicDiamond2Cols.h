@@ -8,21 +8,19 @@
 class WavefrontDynamicDiamond2Cols : public Aligner
 {
 public:
-	WavefrontDynamicDiamond2Cols();
-	virtual ~WavefrontDynamicDiamond2Cols();
+    WavefrontDynamicDiamond2Cols();
+    virtual ~WavefrontDynamicDiamond2Cols();
 
-	void setInput(const char* P, const char* T, long k);
-	long getDistance();
-	char* getAlignmentPath(long* distance);
-	const char* getDescription(); 
+    void setInput(const char* P, const char* T, long k);
+    long getDistance();
+    char* getAlignmentPath(long* distance);
+    const char* getDescription(); 
 
-	long* m_W;
-	const char* m_P;
-	const char* m_T;
-	long m_n;
-	long m_m;
-	long m_k;
-	long m_top;
+    long* m_W;
+    
+    
+    long m_k;
+    long m_top;
 };
 
 #endif
