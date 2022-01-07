@@ -29,7 +29,7 @@
  * @param tileLen
  * @return 
  */
-int isInLocalBlock(int ld, int lr, int tileLen)
+int inline __attribute__((always_inline)) isInLocalBlock(int ld, int lr, int tileLen)
 {
     if (lr < 0)
         return 0;
@@ -54,7 +54,7 @@ int isInLocalBlock(int ld, int lr, int tileLen)
     return ((idx >= 0) && (idx <= 2*tileLen*tileLen));
 }
 
-int isInLocalBlockBoundary(int ld, int lr, int tileLen)
+int inline __attribute__((always_inline)) isInLocalBlockBoundary(int ld, int lr, int tileLen)
 {
     int maxd = 2*tileLen-lr-1;
     if (abs(ld) == maxd)
@@ -67,7 +67,7 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
     return 0;
 }
 
-long extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+long inline __attribute__((always_inline)) extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {
     long e = 0;
 
@@ -84,7 +84,7 @@ long extend(__global const char* P, __global const char* T, long m, long n, long
 }
 
 
-int polarExistsInW(long d, long r)
+int inline __attribute__((always_inline)) polarExistsInW(long d, long r)
 {
     long x = POLAR_W_TO_CARTESIAN_X(d,r);
     long y = POLAR_W_TO_CARTESIAN_Y(d,r);
@@ -92,74 +92,12 @@ int polarExistsInW(long d, long r)
     return ((x >= 0) && (y >= 0));
 }
 
-void processCell(__global char* P, __global char* T, long m_m,  long m_n, long m_k, __global long* m_W, __global long* p_final_d_r, long d, long r, int tileLen, __local long* localW, int ld, int lr, int* doRun);
-
-/**
- * This is the initial kernel version.
- * The host will create as many work items as the height of the column W
- * most of them will die soon with nothing useful to do
- * 
- * @param P the pattern
- * @param T the text
- * @param m_m the length of the pattern
- * @param m_n the length of the text
- * @param r radius of the W column to compute
- * @param m_k max number of errors we are going to cover (width of the W pyramid)
- * @param m_W memory for the 2 columns of the W pyramid
- * @param pointer to 2 values (furthest reaching radius, edit distance of the previous value)
- * @param tileLen the length of the tile. The tile will contain 2 * (n)^2, where n is the 
- *                number of columns, n > 1.
- */
-__kernel void wfo2cols(
-        __global char* P, 
-        __global char* T, 
-        long m_m, 
-        long m_n, 
-        long r0, 
-        long m_k,  
-        __global long* m_W,
-        __global long* p_final_d_r,
-        int tileLen)
-{
-    __local long localW[2*TILE_LEN*TILE_LEN];
-
-    size_t gid = get_global_id(0);
-
-    //long d = gid - (r-1);
-    long d0 = r0 - gid*2*tileLen; 
-    long m_top = max2(m_m,m_n);
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    int doRun = 1;
-
-#ifdef DEBUG
-    printf("\ngid: %ld - final_d: %ld \n", gid, final_d);
-#endif
-    // printf("\n[POCL] d0=%ld r0=%ld  cv=%ld\n", d0, r0, p_final_d_r[0]);
-    
-    // we already reached the final point in previous invocations
-    if (p_final_d_r[0] >= m_top)
-        return;
-        
-    // Increase
-    for (int i=0 ; ((i < tileLen) && (doRun)); i++)
-        for (int j=-i; ((j <= i) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, localW, j, i, &doRun);
-    
-    // Decrease
-    for (int i=0 ; ((i < tileLen) && (doRun)); i++)
-    {
-        int ii = tileLen - 1 -i;
-        
-        for (int j=-ii; ((j <= ii) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, localW, j, tileLen+i, &doRun);
-    }
-}
 
 #define WRITE_W(d,r, v) writeToW(m_W, localW, (d), (r), (v), m_k, tileLen, ld, lr)
 #define READ_W(d,r, ld, lr)     (readFromW(m_W, localW, (d), (r), m_k, tileLen, ld, lr))
 
 
-void writeToW(__global long* m_W, __local long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+void inline __attribute__((always_inline)) writeToW(__global long* m_W, __local long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
 {    
     int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
 
@@ -179,7 +117,7 @@ void writeToW(__global long* m_W, __local long* localW, long d, long r, long v, 
     }
 }
 
-long readFromW(__global long* m_W, __local long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+long inline __attribute__((always_inline)) readFromW(__global long* m_W, __local long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
 {
     int isInLocal = isInLocalBlock(ld, lr, tileLen);
     
@@ -209,7 +147,7 @@ long readFromW(__global long* m_W, __local long* localW, long d, long r, long m_
     }
 }
 
-void processCell(__global char* P, 
+void inline __attribute__((always_inline)) processCell(__global char* P, 
         __global char* T, 
         long m_m, 
         long m_n,
@@ -291,4 +229,72 @@ void processCell(__global char* P,
         }
     }
 
+}
+
+
+/**
+ * This is the initial kernel version.
+ * The host will create as many work items as the height of the column W
+ * most of them will die soon with nothing useful to do
+ * 
+ * @param P the pattern
+ * @param T the text
+ * @param m_m the length of the pattern
+ * @param m_n the length of the text
+ * @param r0 initial radius of the W column to compute
+ * @param m_k max number of errors we are going to cover (width of the W pyramid)
+ * @param m_W memory for the 2 columns of the W pyramid
+ * @param pointer to 2 values (furthest reaching radius, edit distance of the previous value)
+ * @param tileLen the length of the tile. The tile will contain 2 * (n)^2, where n is the 
+ *                number of columns, n > 1.
+ */
+__kernel void wfo2cols(
+        __global char* P, 
+        __global char* T, 
+        long m_m, 
+        long m_n, 
+        long r0, 
+        long m_k,  
+        __global long* m_W,
+        __global long* p_final_d_r,
+        int tileLen)
+{
+    __local long localW[2*TILE_LEN*TILE_LEN];
+
+    size_t gid = get_global_id(0);
+
+    //long d = gid - (r-1);
+    long d0 = r0 - gid*2*tileLen; 
+    long m_top = max2(m_m,m_n);
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    int doRun = 1;
+    
+    if (abs(d0) > r0)
+        doRun = 0;
+
+#ifdef DEBUG
+    printf("\ngid: %ld - final_d: %ld  d0: %ld run: %d\n", gid, final_d, d0, doRun);
+#endif
+    // printf("\n[POCL] d0=%ld r0=%ld  cv=%ld\n", d0, r0, p_final_d_r[0]);
+    
+    if (!doRun)
+        return;
+    
+    // we already reached the final point in previous invocations
+    if (p_final_d_r[0] >= m_top)
+        return;
+        
+    // Increase
+    for (int i=0 ; ((i < tileLen) && (doRun)); i++)
+        for (int j=-i; ((j <= i) && (doRun)); j++)
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, localW, j, i, &doRun);
+    
+    // Decrease
+    for (int i=0 ; ((i < tileLen) && (doRun)); i++)
+    {
+        int ii = tileLen - 1 -i;
+        
+        for (int j=-ii; ((j <= ii) && (doRun)); j++)
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, localW, j, tileLen+i, &doRun);
+    }
 }
