@@ -67,7 +67,7 @@ int inline __attribute__((always_inline)) isInLocalBlockBoundary(int ld, int lr,
     return 0;
 }
 
-long inline __attribute__((always_inline)) extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+long inline __attribute__((always_inline)) extendUnaligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {
     long e = 0;
 
@@ -83,6 +83,54 @@ long inline __attribute__((always_inline)) extend(__global const char* P, __glob
     return e;
 }
 
+#ifdef __ENDIAN_LITTLE__
+#define ctz(x) popcount(~(x | -x))
+#endif
+
+long inline __attribute__((always_inline)) extendAligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+{
+    long e = 0;
+
+    
+    while (pi < m && ti < n)
+    {
+        __global const long* lp = &P[pi];
+        __global const long* lt = &T[ti];
+
+        long x = (*lp) ^ (*lt); 
+
+        printf("aligned pi:%ld ti:%ld - %lX %d\n", pi, ti, x, ctz(x));
+        
+        if (x != 0)
+        {
+            e += ctz(x) / 8;
+            return e;
+        }
+        
+        // if values are equal, it means that 8 bytes are equal
+        e += 8;
+        pi += 8;
+        ti += 8;
+    }
+
+    return e;
+}
+
+#define MASK_ALIGN_64 0xFFFFFFFFFFFFFFF8
+
+long inline __attribute__((always_inline)) extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+{    
+    if (((pi % 8) == 0) && ((ti % 8) == 0))
+    {
+        //printf("aligned\n");
+        // if both pointers are aligned at 64 bits
+        return extendAligned(P, T, m, n, pi, ti);
+    }
+    else
+    {
+        return extendUnaligned(P, T, m, n, pi, ti);
+    }
+}
 
 int inline __attribute__((always_inline)) polarExistsInW(long d, long r)
 {
