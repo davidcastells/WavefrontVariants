@@ -41,6 +41,7 @@
 extern int verbose;
 extern int gPid;
 extern int gDid;
+extern int gWorkgroupSize;
 
 OCLFPGAWavefrontOriginal2Cols::OCLFPGAWavefrontOriginal2Cols()
 {
@@ -246,7 +247,7 @@ void OCLFPGAWavefrontOriginal2Cols::invokeKernel(long r)
 
     //long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*r+1);
+    m_queue->invokeKernel1D(m_kernel, 2*r+1, gWorkgroupSize);
 }
 
 char* OCLFPGAWavefrontOriginal2Cols::getAlignmentPath(long* distance)
