@@ -84,15 +84,25 @@ char* gT = NULL;
 char* gfP = NULL;
 char* gfT = NULL;
 
-int gPid = 0;   // OpenCL platform ID
-int gDid = 0;   // OpenCL device ID
+int gPid = 0;           // OpenCL platform ID
+int gDid = 0;           // OpenCL device ID
+int gWorkgroupSize = 8; // Workgroup size
 
 int verbose = 0;
+
+std::string gExeDir = ".";
 
 void usage();
 
 void parseArgs(int argc, char* args[])
 {
+    gExeDir = OCLUtils::getDir(args[0]);
+    
+    auto ocl = OCLUtils::getInstance();
+    ocl->setKernelDir(gExeDir);
+    if (verbose)
+        printf("kernel dir: %s\n", gExeDir.c_str());
+    
     for (int i=1; i < argc; i++)
     {
         //printf("parsing %s\n", args[i]);
@@ -123,7 +133,11 @@ void parseArgs(int argc, char* args[])
         {
             gDid = atol(args[++i]);
         }
-
+        if ((strcmp(args[i], "-wgs") == 0) || (strcmp(args[i], "--workgroup-size") == 0))
+        {
+            gWorkgroupSize = atol(args[++i]);
+        }
+                
         if (strcmp(args[i], "-P") == 0)
             gP = args[++i];
         if (strcmp(args[i], "-T") == 0)
@@ -228,6 +242,8 @@ void usage()
     printf("        Index of the OpenCL platform to use (select from the list).\n");
     printf("    %s-did,--opencl-device-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Index of the OpenCL device to use (select from the list).\n");
+    printf("    %s-wgs,--workgroup-size%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Number of workitems per Workgroup (default is 8).\n");
     printf("\n");
 
     exit(0);
