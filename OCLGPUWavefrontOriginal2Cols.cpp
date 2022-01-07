@@ -44,6 +44,7 @@
 extern int verbose;
 extern int gPid;
 extern int gDid;
+extern int gWorkgroupSize;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -259,7 +260,7 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
 
     //long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, (r/m_tileLen)+1);
+    m_queue->invokeKernel1D(m_kernel, (r/m_tileLen)+1, gWorkgroupSize);
     
     
 
