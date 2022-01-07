@@ -27,6 +27,19 @@ CUDAlign execution time (GeForce GTX280) = 1,348 s
   <tr><td>-WFDD2</td><td>0.137</td><td>0.12</td></tr>
 </table>
 
+For longer sequences 7,145,576 x 5,227,293 (distance = ?).<br/>
+CUDAlign execution time (GeForce GTX280) = 1,348 s
+
+./wavefront.exe -fP NC_005027.1.fasta -fT data/NC_003997.3.fasta -k -1 -v <method>
+
+<table>
+  <tr><td>command-line</td><td>Intel(R) Core(TM) <br/>i7-5500U CPU<br/> @ 2.40GHz</td><td>Intel(R) Xeon(R)<br/> Silver 4210 CPU <br/>@ 2.20GHz</td></tr>
+  <tr><td>-DP2</td><td>112,785</td><td>101,202</td></tr>
+  <tr><td>-WFO2</td><td>0.108</td><td>0.10</td></tr>
+  <tr><td>-WFD2</td><td>0.109</td><td>0.12</td></tr>
+  <tr><td>-WFDD2</td><td>0.137</td><td>0.12</td></tr>
+</table>
+
 Bigest sequences  32,799,110 x 46,944,323 (distance = ?) <br>
 CUDAlign execution time (GeForce GTX280) = 75,571 s
   
