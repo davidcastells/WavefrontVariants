@@ -22,6 +22,8 @@
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
+#define LOCAL_STORE 
+
 /**
  * 
  * @param ld local diagonal coordinate
@@ -90,7 +92,6 @@ long inline __attribute__((always_inline)) extendUnaligned(__global const char* 
 long inline __attribute__((always_inline)) extendAligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {
     long e = 0;
-
     
     while (pi < m && ti < n)
     {
@@ -99,7 +100,9 @@ long inline __attribute__((always_inline)) extendAligned(__global const char* P,
 
         long x = (*lp) ^ (*lt); 
 
+#ifdef DEBUG
         printf("aligned pi:%ld ti:%ld - %lX %d\n", pi, ti, x, ctz(x));
+#endif
         
         if (x != 0)
         {
@@ -145,7 +148,7 @@ int inline __attribute__((always_inline)) polarExistsInW(long d, long r)
 #define READ_W(d,r, ld, lr)     (readFromW(m_W, localW, (d), (r), m_k, tileLen, ld, lr))
 
 
-void inline __attribute__((always_inline)) writeToW(__global long* m_W, __local long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+void inline __attribute__((always_inline)) writeToW(__global long* m_W, LOCAL_STORE long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
 {    
     int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
 
@@ -165,7 +168,7 @@ void inline __attribute__((always_inline)) writeToW(__global long* m_W, __local 
     }
 }
 
-long inline __attribute__((always_inline)) readFromW(__global long* m_W, __local long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+long inline __attribute__((always_inline)) readFromW(__global long* m_W, LOCAL_STORE long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
 {
     int isInLocal = isInLocalBlock(ld, lr, tileLen);
     
@@ -205,7 +208,7 @@ void inline __attribute__((always_inline)) processCell(__global char* P,
         long d,
         long r,
         int tileLen,
-        __local long* localW,
+        LOCAL_STORE long* localW,
         int ld,
         int lr,
         int* doRun)
@@ -307,7 +310,7 @@ __kernel void wfo2cols(
         __global long* p_final_d_r,
         int tileLen)
 {
-    __local long localW[2*TILE_LEN*TILE_LEN];
+    LOCAL_STORE long localW[2*TILE_LEN*TILE_LEN];
 
     size_t gid = get_global_id(0);
 
