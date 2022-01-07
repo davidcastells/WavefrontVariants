@@ -324,13 +324,27 @@ int OCLUtils::fileExists(const char *file_name)
 #endif
 }
 
+std::string OCLUtils::getDir(const char* file_name)
+{
+    std::string str(file_name);
+    std::size_t found = str.find_last_of("/");
+    return str.substr(0,found);
+}
+
+void OCLUtils::setKernelDir(std::string& str)
+{
+    m_kernelDir = str + std::string("/");
+}
+
 std::string OCLUtils::loadSourceFile(const char* filename)
 {
+    std::string file = m_kernelDir + std::string(filename);
+    
     // Read program file and place content into buffer 
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = fopen(file.c_str(), "r");
 
     if (fp == NULL) 
-        throw std::runtime_error(std::string("File not found") + std::string(filename));
+        throw std::runtime_error(std::string("File not found ") + file);
 
     fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
@@ -353,12 +367,14 @@ std::string OCLUtils::loadSourceFile(const char* filename)
 
 unsigned char* OCLUtils::loadBinaryFile(const char* filename, size_t *size) 
 {
-  // Open the File
+    std::string file = m_kernelDir + std::string(filename);
+
+    // Open the File
   FILE* fp;
-  fp = fopen(filename, "rb");
+  fp = fopen(file.c_str(), "rb");
   
   if(fp == 0)
-      throw std::runtime_error(std::string("File not found") + std::string(filename));
+      throw std::runtime_error(std::string("File not found ") + std::string(filename));
 
   // Get the size of the file
   fseek(fp, 0, SEEK_END);
@@ -452,7 +468,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string
     cl_device_id device_ids[] = {m_deviceId};
     
     if (contains(m_selectedPlatformName, "Portable Computing Language"))
-        options += "-g -cl-opt-disable"; 
+        options += "-g "; // -cl-opt-disable"; 
     else if (contains(m_selectedPlatformName, "NVIDIA"))
         options += "-cl-nv-verbose"; 
     
@@ -586,9 +602,20 @@ OCLQueue::~OCLQueue()
     // CHECK_CL_ERRORS(err);
 }
 
-void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
+void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems, size_t workgroupsize)
 {
-    size_t wgSize[3] = {1, 1, 1};
+    // workitems must be multiple of workgroupsize
+    if (workgroupsize > 1)
+    {
+        size_t new_workitems = ((workitems + (workgroupsize-1)) / workgroupsize) * workgroupsize;
+                
+        if (verbose > 1)
+            printf("Rounding workitems from %ld to %ld\n", workitems, new_workitems);
+        
+        workitems = new_workitems;
+    }
+    
+    size_t wgSize[3] = {workgroupsize, 1, 1};
     size_t gSize[3] = {workitems, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
