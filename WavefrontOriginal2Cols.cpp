@@ -27,48 +27,188 @@
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
 extern int verbose;
+extern int gStats;
+extern int gExtendAligned;
+
+#define EXTEND_BIN_ELEMENTS 2
 
 WavefrontOriginal2Cols::WavefrontOriginal2Cols()
 {
+    for (int i=0; i<10; i++)
+        m_statsExtendBins[i] = 0;
+    m_statsMaxExtend = 0;
 }
 
 WavefrontOriginal2Cols::~WavefrontOriginal2Cols()
 {
-	delete [] m_W;
+    delete [] m_W;
 }
 
 
-
-static long extend(const char* P, const char* T, long m, long n, long pi, long ti)
+void WavefrontOriginal2Cols::collectExtendStats(long e)
 {
-	long e = 0;
-	
-	while (pi < m && ti < n)
-	{
-		if (P[pi] != T[ti])
-			return e;
-		e++;
-		pi++;
-		ti++;
-	}
-	
-	return e;
+    long bin = e / EXTEND_BIN_ELEMENTS;
+    if (bin > 9)
+        bin = 9;
+    
+    m_statsExtendBins[bin]++;
+    
+    if (e > m_statsMaxExtend)
+        m_statsMaxExtend = e;
+}
+
+void WavefrontOriginal2Cols::printStats()
+{
+    printf("\nStats:\n");
+    printf("Extend values histogram:\n");
+    for (int i=0; i < 10; i++)
+    {
+        printf("[%2d-%2d] = %ld\n", i*EXTEND_BIN_ELEMENTS , (i+1)*EXTEND_BIN_ELEMENTS-1, m_statsExtendBins[i]);
+    }
+    
+    printf("\nMax Extend: %ld\n\n", m_statsMaxExtend);
+}
+
+#define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
+
+long WavefrontOriginal2Cols::extendAligned(const char* P, const char* T, long m, long n, long pi, long ti)
+{
+    int pbv; // P valid bytes
+    int tbv; // T valid bytes
+    
+    long pai;
+    long tai;
+    
+    int pbidx;
+    int tbidx;
+    
+    long PV;    // P value
+    long TV;    // T value
+
+    int mbv;
+    unsigned long mask;
+    int neq;
+    
+    long e = 0;
+    
+    //long gt = extend(P, T, m, n, pi, ti);
+    
+loop:
+    pai = pi & ALIGN_MASK;
+    tai = ti & ALIGN_MASK;
+    
+    PV = *(long*)(&P[pai]);
+    TV = *(long*)(&T[tai]);
+    
+//    printf("pi: %ld ti: %ld pai: %ld tai: %ld \n", pi, ti, pai, tai);
+//    printf("PV = 0x%016lX\n", PV);
+//    printf("TV = 0x%016lX\n", TV);
+    
+    pbidx = (pi%8);
+    tbidx = (ti%8);
+    
+    pbv = 8 - pbidx;
+    tbv = 8 - tbidx;
+    
+    if (pbv > (m-pi)) pbv = m-pi;
+    if (tbv > (n-ti)) tbv = n-pi;
+
+    mbv = min2(pbv, tbv);    // minimum valid bytes
+    
+    //assert(mbv);
+    if (mbv > 0)
+    {
+//        mask = (-1L);
+//        mask <<= (mbv*8);
+//        if (mbv == 8) mask = 0;
+
+//        printf("%d -> %016lX\n", mbv, mask);
+    //    
+        switch (mbv)
+        {
+            case 1: mask = 0xFFFFFFFFFFFFFF00; break;
+            case 2: mask = 0xFFFFFFFFFFFF0000; break;
+            case 3: mask = 0xFFFFFFFFFF000000; break;
+            case 4: mask = 0xFFFFFFFF00000000; break;
+            case 5: mask = 0xFFFFFF0000000000; break;
+            case 6: mask = 0xFFFF000000000000; break;
+            case 7: mask = 0xFF00000000000000; break;
+            case 8: mask = 0x0000000000000000; break;
+        }
+
+//        printf("pbv = %d\n", pbv);
+//        printf("tbv = %d\n", tbv);
+
+        PV = PV >> (pbidx*8);
+        TV = TV >> (tbidx*8);
+
+//        printf("PV = 0x%016lX\n", PV);
+//        printf("TV = 0x%016lX\n", TV);
+//        printf("MK = 0x%016lX\n", mask);
+
+        neq = __builtin_ctzl((PV ^ TV) | mask) / 8;
+
+//        printf("neq = %d\n", neq);
+
+        e += neq;
+
+        if (neq == mbv)
+        {
+            ti += neq;
+            pi += neq;
+            goto loop;
+        }
+    }
+    
+    if (gStats) collectExtendStats(e);
+
+//    printf("e = %ld\n", e);
+    
+//    if (e != gt)
+//    {
+//        printf("ERROR at pi: %ld ti: %ld\n", pi, ti);
+//        exit(0);
+//    }
+    return e;
+}
+
+
+long WavefrontOriginal2Cols::extend(const char* P, const char* T, long m, long n, long pi, long ti)
+{
+    long e = 0;
+
+    while (pi < m && ti < n)
+    {
+        if (P[pi] != T[ti])
+        {
+            if (gStats)
+                collectExtendStats(e);
+            
+            return e;
+        }
+        
+        e++;
+        pi++;
+        ti++;
+    }
+
+    return e;
 }
 
 static long polarExistsInD(long d, long r)
 {
-	long  x = POLAR_D_TO_CARTESIAN_X(d,r);
-	long y = POLAR_D_TO_CARTESIAN_Y(d,r);
-	
-	return ((x >= 0) && (y>=0));
+    long  x = POLAR_D_TO_CARTESIAN_X(d,r);
+    long y = POLAR_D_TO_CARTESIAN_Y(d,r);
+
+    return ((x >= 0) && (y>=0));
 }
 
 static long polarExistsInW(long d, long r)
 {
-	long x = POLAR_W_TO_CARTESIAN_X(d,r);
-	long y = POLAR_W_TO_CARTESIAN_Y(d,r);
-	
-	return ((x >= 0) && (y >= 0));
+    long x = POLAR_W_TO_CARTESIAN_X(d,r);
+    long y = POLAR_W_TO_CARTESIAN_Y(d,r);
+
+    return ((x >= 0) && (y >= 0));
 }
 
 void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
@@ -83,12 +223,12 @@ void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
     try
     {
-            m_W = new long[size];
+        m_W = new long[size];
     }
     catch (const std::bad_alloc& e) 
     {
-            printf("FAILED to allocate memory\n");
-            exit(-1);
+        printf("FAILED to allocate memory\n");
+        exit(-1);
     }
 
     assert(m_W);
@@ -102,22 +242,24 @@ void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
 void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
-#define DECIMALS_PERCENT    1000
+    static double lastPrintLap = -1;
+    
     if (!verbose)
         return;
     
     double elapsed = lap.stop();
     double estimated = (elapsed / (r*r)) * (m_k*m_k);
-    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
+    int percent = (r*r*100.0/(m_k*m_k));
     
     
-    //if (percent != lastpercent)
+    if (elapsed > (lastPrintLap + 0.5))
     {
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s", r, m_k, ((double)percent) , (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
+        lastPrintLap = elapsed;
     }
 }
 
@@ -133,7 +275,7 @@ long WavefrontOriginal2Cols::getDistance()
     long ret;
 
     // for the first element, just execute the extend phase
-    m_W[POLAR_W_TO_INDEX(0, 0)] = extend(m_P, m_T, m_m, m_n, 0, 0);
+    m_W[POLAR_W_TO_INDEX(0, 0)] = (gExtendAligned) ? extendAligned(m_P, m_T, m_m, m_n, 0, 0) : extend(m_P, m_T, m_m, m_n, 0, 0);
 
     if (m_W[POLAR_W_TO_INDEX(0, 0)] >= m_top)
             goto end_loop;
@@ -171,7 +313,7 @@ long WavefrontOriginal2Cols::getDistance()
             {
                 //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
 
-                long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                long extendv = (gExtendAligned) ? extendAligned(m_P, m_T, m_m, m_n, ey, ex) : extend(m_P, m_T, m_m, m_n, ey, ex);
                 long extended = compute + extendv;
 
                 m_W[POLAR_W_TO_INDEX(d, r)] = extended;
@@ -199,7 +341,10 @@ long WavefrontOriginal2Cols::getDistance()
 
 end_loop:
     if (verbose)
-            printf("\n");
+        printf("\n");
+
+    if (gStats)
+        printStats();
 
     return ret;
 }
