@@ -89,50 +89,118 @@ long inline __attribute__((always_inline)) extendUnaligned(__global const char* 
 #define ctz(x) popcount(~(x | -x))
 #endif
 
+#define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
+
 long inline __attribute__((always_inline)) extendAligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {
+    int pbv; // P valid bytes
+    int tbv; // T valid bytes
+    
+    long pai;
+    long tai;
+    
+    int pbidx;
+    int tbidx;
+    
+    long PV;    // P value
+    long TV;    // T value
+
+    int mbv;
+    unsigned long mask;
+    int neq;
+    
     long e = 0;
     
-    while (pi < m && ti < n)
+    //long gt = extend(P, T, m, n, pi, ti);
+    
+loop:
+    pai = pi & ALIGN_MASK;
+    tai = ti & ALIGN_MASK;
+    
+    PV = *(__global long*)(&P[pai]);
+    TV = *(__global long*)(&T[tai]);
+    
+//    printf("pi: %ld ti: %ld pai: %ld tai: %ld \n", pi, ti, pai, tai);
+//    printf("PV = 0x%016lX\n", PV);
+//    printf("TV = 0x%016lX\n", TV);
+    
+    pbidx = (pi%8);
+    tbidx = (ti%8);
+    
+    pbv = 8 - pbidx;
+    tbv = 8 - tbidx;
+    
+    if (pbv > (m-pi)) pbv = m-pi;
+    if (tbv > (n-ti)) tbv = n-pi;
+
+    mbv = min(pbv, tbv);    // minimum valid bytes
+    
+    //assert(mbv);
+    if (mbv > 0)
     {
-        __global const long* lp = &P[pi];
-        __global const long* lt = &T[ti];
+//        mask = (-1L);
+//        mask <<= (mbv*8);
+//        if (mbv == 8) mask = 0;
 
-        long x = (*lp) ^ (*lt); 
-
-#ifdef DEBUG
-        printf("aligned pi:%ld ti:%ld - %lX %d\n", pi, ti, x, ctz(x));
-#endif
-        
-        if (x != 0)
+//        printf("%d -> %016lX\n", mbv, mask);
+    //    
+        switch (mbv)
         {
-            e += ctz(x) / 8;
-            return e;
+            case 1: mask = 0xFFFFFFFFFFFFFF00; break;
+            case 2: mask = 0xFFFFFFFFFFFF0000; break;
+            case 3: mask = 0xFFFFFFFFFF000000; break;
+            case 4: mask = 0xFFFFFFFF00000000; break;
+            case 5: mask = 0xFFFFFF0000000000; break;
+            case 6: mask = 0xFFFF000000000000; break;
+            case 7: mask = 0xFF00000000000000; break;
+            case 8: mask = 0x0000000000000000; break;
         }
-        
-        // if values are equal, it means that 8 bytes are equal
-        e += 8;
-        pi += 8;
-        ti += 8;
-    }
 
+//        printf("pbv = %d\n", pbv);
+//        printf("tbv = %d\n", tbv);
+
+        PV = PV >> (pbidx*8);
+        TV = TV >> (tbidx*8);
+
+//        printf("PV = 0x%016lX\n", PV);
+//        printf("TV = 0x%016lX\n", TV);
+//        printf("MK = 0x%016lX\n", mask);
+
+        neq = ctz((PV ^ TV) | mask) / 8;
+
+//        printf("neq = %d\n", neq);
+
+        e += neq;
+
+        if (neq == mbv)
+        {
+            ti += neq;
+            pi += neq;
+            goto loop;
+        }
+    }
+    
+//    if (gStats) collectExtendStats(e);
+
+//    printf("e = %ld\n", e);
+    
+//    if (e != gt)
+//    {
+//        printf("ERROR at pi: %ld ti: %ld\n", pi, ti);
+//        exit(0);
+//    }
     return e;
 }
 
-#define MASK_ALIGN_64 0xFFFFFFFFFFFFFFF8
+
 
 long inline __attribute__((always_inline)) extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {    
-    if (((pi % 8) == 0) && ((ti % 8) == 0))
-    {
-        //printf("aligned\n");
-        // if both pointers are aligned at 64 bits
+#ifdef EXTEND_ALIGNED
         return extendAligned(P, T, m, n, pi, ti);
-    }
-    else
-    {
+#else
         return extendUnaligned(P, T, m, n, pi, ti);
-    }
+#endif
 }
 
 int inline __attribute__((always_inline)) polarExistsInW(long d, long r)
