@@ -45,6 +45,7 @@ extern int verbose;
 extern int gPid;
 extern int gDid;
 extern int gWorkgroupSize;
+extern int gExtendAligned;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -124,6 +125,9 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     std::string plName = ocl->getSelectedPlatformName();
     if (OCLUtils::contains(plName, "Portable Computing Language") && (verbose > 1))
         options += " -D DEBUG ";
+    
+    if (gExtendAligned)
+        options += " -D EXTEND_ALIGNED ";
     
     ocl->createProgramFromSource("WFO2ColsGPU.cl", options);
     m_kernel = ocl->createKernel("wfo2cols");
