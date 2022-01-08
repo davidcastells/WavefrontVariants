@@ -88,7 +88,10 @@ int gPid = 0;           // OpenCL platform ID
 int gDid = 0;           // OpenCL device ID
 int gWorkgroupSize = 8; // Workgroup size
 
+int gExtendAligned = 0; // use aligned reads during extension
+
 int verbose = 0;
+int gStats = 0;
 
 std::string gExeDir = ".";
 
@@ -172,6 +175,10 @@ void parseArgs(int argc, char* args[])
             verbose = 2;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
             usage();
+        if ((strcmp(args[i], "-s") == 0) || (strcmp(args[i], "--stats") == 0))
+            gStats = 1;
+        if ((strcmp(args[i], "-ea") == 0) || (strcmp(args[i], "--extend-aligned") == 0))
+            gExtendAligned = 1;
     }
 }
 
@@ -193,6 +200,8 @@ void usage()
     printf("        Verbose output.\n");
     printf("    %s-vv,--verbose-2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        More verbose output.\n");
+    printf("    %s-s,--stats%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Print various statistics.\n");
     printf("\n");
 
     printf("  %sInput Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -234,6 +243,8 @@ void usage()
     printf("        Maximum allowed errors (reduce memory usage).\n");
     printf("    %s-a,--align%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Print alignment path to transforms T into P.\n");
+    printf("    %s-ea,--extend-aligned%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Do extension phase with aligned read operations.\n");    
     printf("\n");
 
 
