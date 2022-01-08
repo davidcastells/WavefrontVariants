@@ -15,7 +15,12 @@ public:
     long getDistance();
     char* getAlignmentPath(long* distance);
     const char* getDescription(); 
+    long extendAligned(const char* P, const char* T, long m, long n, long pi, long ti);
+    long extend(const char* P, const char* T, long m, long n, long pi, long ti);
 
+    void collectExtendStats(long e);
+    void printStats();
+    
 protected:
     void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
 
@@ -23,6 +28,10 @@ protected:
     
     long m_k;
     long m_top;
+    
+    // stats
+    long m_statsExtendBins[10];
+    long m_statsMaxExtend;
 };
 
 #endif
