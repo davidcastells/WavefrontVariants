@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <omp.h>
+#include <stdexcept>
 
 #include "PerformanceLap.h"
 #include "LevDP.h"
@@ -19,6 +20,7 @@
 #include "OCLUtils.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
 #include "OCLFPGAWavefrontOriginal2Cols.h"
+#include "OCLGPUWavefrontDynamicDiamond2Cols.h"
 
 int wavefront_classic(const char* P, const char* T, int m, int n, int k);
 int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
@@ -72,6 +74,8 @@ int doWFD = 0;
 int doWFD2 = 0;
 int doWFDD = 0;
 int doWFDD2 = 0;
+int doWFDD2OCL = 0;
+
 int doAlignmentPath = 0;
 
 long gM = 100;
@@ -169,6 +173,9 @@ void parseArgs(int argc, char* args[])
             doWFDD = 1;
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
+        if (strcmp(args[i], "-WFDD2OCL") == 0)
+            doWFDD2OCL = 1;
+
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
             verbose = 1;
         if ((strcmp(args[i], "-vv") == 0) || (strcmp(args[i], "--verbose-2") == 0))
@@ -236,6 +243,10 @@ void usage()
     printf("        Use the wavefront diamond approach.\n");
     printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach.\n");
+    printf("    %s-WFDD2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the wavefront dynamic diamond approach with 2 columns.\n");
+    printf("    %s-WFDD2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the wavefront dynamic diamond approach with 2 columns in OpenCL.\n");
     printf("\n");
 
     printf("  %sOperational Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -391,6 +402,24 @@ int main(int argc, char* args[])
     {
         WavefrontDynamicDiamond2Cols aligner;
         aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+    
+    if (doWFDD2OCL)
+    {
+        OCLUtils* ocl = OCLUtils::getInstance();
+        ocl->selectPlatform(gPid);
+        std::string pn = ocl->getSelectedPlatformName();
+        if (OCLUtils::contains(pn, "FPGA") || OCLUtils::contains(pn, "Xilinx"))
+        {
+            throw std::runtime_error("WFDD2OCL FPGA version not implemented yet");
+//            OCLFPGAWavefrontOriginal2Cols aligner;
+//            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
+        else
+        {
+            OCLGPUWavefrontDynamicDiamond2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
     }
 
     return 0;
