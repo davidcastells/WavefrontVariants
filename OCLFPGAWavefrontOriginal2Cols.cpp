@@ -82,6 +82,7 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
+    m_tileLen = 3;
 
     long size = 2*(2*k+1);
     m_w_h = size;
@@ -236,6 +237,10 @@ void OCLFPGAWavefrontOriginal2Cols::setCommonArgs()
 
     ret = clSetKernelArg(m_kernel, 7, sizeof(cl_mem), (void *)&m_buf_final_d_r);
     CHECK_CL_ERRORS(ret);
+    
+    // Tile len is defined as constant during compilation
+//    ret = clSetKernelArg(m_kernel, 8, sizeof(cl_int), (void *)&m_tileLen);
+//    CHECK_CL_ERRORS(ret);
 }
 
 void OCLFPGAWavefrontOriginal2Cols::invokeKernel(long r)
