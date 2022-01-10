@@ -37,6 +37,11 @@ WavefrontOriginal2Cols::WavefrontOriginal2Cols()
     for (int i=0; i<10; i++)
         m_statsExtendBins[i] = 0;
     m_statsMaxExtend = 0;
+    
+    m_statsPTReadBytes = 0;
+    m_statsWReadBytes = 0;
+    m_statsWReadBytes = 0;
+    m_statsTime = 0;
 }
 
 WavefrontOriginal2Cols::~WavefrontOriginal2Cols()
@@ -67,9 +72,37 @@ void WavefrontOriginal2Cols::printStats()
     }
     
     printf("\nMax Extend: %ld\n\n", m_statsMaxExtend);
+    
+    printf("P/T Read bytes: %ld\n", m_statsPTReadBytes);
+    printf("W Read bytes: %ld\n", m_statsWReadBytes);
+    printf("W Write bytes: %ld\n", m_statsWWriteBytes);
+
+    printf("P/T Read Bandwidth: %f Bps\n", (double)m_statsPTReadBytes/m_statsTime);
+    printf("W Read Bandwidth: %f Bps\n", (double)m_statsWReadBytes/m_statsTime);
+    printf("W Write Bandwidth: %f Bps\n", (double)m_statsWWriteBytes/m_statsTime);
 }
 
 #define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
+
+void WavefrontOriginal2Cols::collectTime(double lap)
+{
+    m_statsTime = lap;
+}
+
+void WavefrontOriginal2Cols::collectPTReadBytes(int inc)
+{
+    m_statsPTReadBytes += inc;
+}
+
+void WavefrontOriginal2Cols::collectWWriteBytes(int inc)
+{
+    m_statsWWriteBytes += inc;
+}
+
+void WavefrontOriginal2Cols::collectWReadBytes(int inc)
+{
+    m_statsWReadBytes += inc;
+}
 
 long WavefrontOriginal2Cols::extendAligned(const char* P, const char* T, long m, long n, long pi, long ti)
 {
@@ -99,6 +132,8 @@ loop:
     
     PV = *(long*)(&P[pai]);
     TV = *(long*)(&T[tai]);
+    
+    if (gStats) collectPTReadBytes(sizeof(long)*2);
     
 //    printf("pi: %ld ti: %ld pai: %ld tai: %ld \n", pi, ti, pai, tai);
 //    printf("PV = 0x%016lX\n", PV);
@@ -179,6 +214,8 @@ long WavefrontOriginal2Cols::extend(const char* P, const char* T, long m, long n
 
     while (pi < m && ti < n)
     {
+        if (gStats) collectPTReadBytes(sizeof(char)*2);
+        
         if (P[pi] != T[ti])
         {
             if (gStats)
@@ -277,6 +314,8 @@ long WavefrontOriginal2Cols::getDistance()
     // for the first element, just execute the extend phase
     m_W[POLAR_W_TO_INDEX(0, 0)] = (gExtendAligned) ? extendAligned(m_P, m_T, m_m, m_n, 0, 0) : extend(m_P, m_T, m_m, m_n, 0, 0);
 
+    if (gStats) collectWWriteBytes(sizeof(long));
+    
     if (m_W[POLAR_W_TO_INDEX(0, 0)] >= m_top)
             goto end_loop;
 
@@ -290,6 +329,8 @@ long WavefrontOriginal2Cols::getDistance()
             long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
             long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
             long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+
+            if (gStats) collectWReadBytes(sizeof(long)*3);
 
             long compute;
 
@@ -317,6 +358,9 @@ long WavefrontOriginal2Cols::getDistance()
                 long extended = compute + extendv;
 
                 m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+                
+                if (gStats) collectWWriteBytes(sizeof(long));
+
 
                 //printf("(Extended)  + %d = %d (P[%d]=%s - T[%d]=%s)\n",  extendv, extended, ey, &m_P[ey], ex, &m_T[ex] );
                 //printf("(Extended)  + %d = %d (P[%d] - T[%d])\n",  extendv, extended, ey,  ex );
@@ -332,6 +376,8 @@ long WavefrontOriginal2Cols::getDistance()
             else
             {
                 m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+                
+                if (gStats) collectWWriteBytes(sizeof(long));
             }
         }
     }
@@ -340,6 +386,9 @@ long WavefrontOriginal2Cols::getDistance()
     progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
 
 end_loop:
+                    
+    collectTime(lap.lap());
+
     if (verbose)
         printf("\n");
 
