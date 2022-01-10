@@ -19,6 +19,10 @@ public:
     long extend(const char* P, const char* T, long m, long n, long pi, long ti);
 
     void collectExtendStats(long e);
+    void collectPTReadBytes(int inc);
+    void collectWWriteBytes(int inc);
+    void collectWReadBytes(int inc);
+    void collectTime(double lap);
     void printStats();
     
 protected:
@@ -32,6 +36,10 @@ protected:
     // stats
     long m_statsExtendBins[10];
     long m_statsMaxExtend;
+    long m_statsPTReadBytes;
+    long m_statsWReadBytes;
+    long m_statsWWriteBytes;
+    double m_statsTime;
 };
 
 #endif
