@@ -385,15 +385,14 @@ __kernel void wfo2cols(
         long r0, 
         long m_k,  
         __global long* m_W,
-        __global long* p_final_d_r,
-        int tileLen)
+        __global long* p_final_d_r)
 {
     LOCAL_STORE long localW[2*TILE_LEN*TILE_LEN];
 
     size_t gid = get_global_id(0);
 
     //long d = gid - (r-1);
-    long d0 = r0 - gid*2*tileLen; 
+    long d0 = r0 - gid*2*TILE_LEN; 
     long m_top = max2(m_m,m_n);
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     int doRun = 1;
@@ -414,16 +413,16 @@ __kernel void wfo2cols(
         return;
         
     // Increase
-    for (int i=0 ; ((i < tileLen) && (doRun)); i++)
+    for (int i=0 ; ((i < TILE_LEN) && (doRun)); i++)
         for (int j=-i; ((j <= i) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, localW, j, i, &doRun);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, TILE_LEN, localW, j, i, &doRun);
     
     // Decrease
-    for (int i=0 ; ((i < tileLen) && (doRun)); i++)
+    for (int i=0 ; ((i < TILE_LEN) && (doRun)); i++)
     {
-        int ii = tileLen - 1 -i;
+        int ii = TILE_LEN - 1 -i;
         
         for (int j=-ii; ((j <= ii) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, localW, j, tileLen+i, &doRun);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+TILE_LEN+i, TILE_LEN, localW, j, TILE_LEN+i, &doRun);
     }
 }
