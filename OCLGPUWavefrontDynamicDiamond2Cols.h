@@ -31,8 +31,8 @@ protected:
     const char* getDescription(); 
 
     void setCommonArgs();
-    void invokeKernel(long r);
-    void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
+    void invokeKernel(long r, long dstart, long numds);
+    void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds);
     
     long* m_W;
     long m_k;
