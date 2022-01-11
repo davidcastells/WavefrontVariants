@@ -137,7 +137,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     printf("input set\n");
 }
 
-void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds)
 {
     static double lastPrintLap = -1;
     
@@ -156,7 +156,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, i
     if (elapsed > (lastPrintLap + 0.5))
     {
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+        printf("\rr %ld/%ld %.2f%% (ds: %ld) elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT), numds , (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
@@ -164,7 +164,27 @@ void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, i
     }
 }
 
+/**
+ * Returns the value (y) which is the next multiple of (m) higher than (x)
+ * 
+ * y = m*k, so that y > x
+ * 
+ * @param value
+ * @param multiple
+ * @return 
+ */
+long nextMultiple(long value, long multiple)
+{
+   return ((value + (multiple-1)) / multiple) * multiple; 
+}
+
+long previousMultiple(long value, long multiple)
+{
+   return ((value - (multiple-1)) / multiple) * multiple; 
+}
+
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
+
 
 long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
 {
@@ -191,9 +211,30 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
 
     for (long r=0; r < m_k; r+= m_tileLen)
     {
-        invokeKernel(r);
+        long dup_left = r;      // this is for sure a multiple of tile len
+        long ddown_left = -r;   // this is for sure a multiple of tile len
+        
+        long effk = nextMultiple(m_k, m_tileLen*2) + m_tileLen;
+        long eff_fd_up = nextMultiple(final_d, m_tileLen);
+        long eff_fd_down = previousMultiple(final_d, m_tileLen);
+        
+        long dup_right = eff_fd_up + (effk-r);
+        long ddown_right = eff_fd_down - (effk-r);
+        
+        // find the next multiple of tilelen
+        if ((dup_right % m_tileLen) != 0) dup_right += m_tileLen - (dup_right % m_tileLen);
+        if ((ddown_right % m_tileLen) != 0) ddown_right -= m_tileLen - (ddown_right % m_tileLen);
+        
+        long dup = min2(dup_left, dup_right);
+        long ddown = max2(ddown_left, ddown_right);
+        
+        long dstart = dup;
+        long numds = (dup - ddown)+1;             // number of ds 
+        long numwi = (((numds-1)/2)/m_tileLen)+1;   // number of workitems
+        
+        invokeKernel(r, dstart, numwi);
 
-        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+        progress(lap, r, lastpercent, cellsAllocated, cellsAlive, numds);
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
@@ -220,7 +261,7 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
     }
     
     lastpercent--;
-    progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+    progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive, 0);
 
     m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
             
@@ -269,16 +310,19 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setCommonArgs()
     CHECK_CL_ERRORS(ret);
 }
 
-void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(long r)
+void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long numds)
 {
     cl_int ret;
     
     ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
     CHECK_CL_ERRORS(ret);
+    
+    ret = clSetKernelArg(m_kernel, 9, sizeof(cl_long), (void *)&dstart);
+    CHECK_CL_ERRORS(ret);
 
     //long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, (r/m_tileLen)+1, gWorkgroupSize);
+    m_queue->invokeKernel1D(m_kernel, numds, gWorkgroupSize);
     
     
 
