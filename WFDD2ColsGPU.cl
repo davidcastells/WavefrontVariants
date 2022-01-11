@@ -384,14 +384,15 @@ __kernel void wfdd2cols(
         long m_k,  
         __global long* m_W,
         __global long* p_final_d_r,
-        int tileLen)
+        int tileLen,
+        long dstart)
 {
     LOCAL_STORE long localW[2*TILE_LEN*TILE_LEN];
 
     size_t gid = get_global_id(0);
 
     //long d = gid - (r-1);
-    long d0 = r0 - gid*2*tileLen; 
+    long d0 = dstart - gid*2*tileLen; 
     long m_top = max2(m_m,m_n);
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     int doRun = 1;
@@ -400,7 +401,7 @@ __kernel void wfdd2cols(
         doRun = 0;
 
 #ifdef DEBUG
-    printf("\ngid: %ld - final_d: %ld  d0: %ld run: %d\n", gid, final_d, d0, doRun);
+    printf("\ngid: %ld - final_d: %ld run: %d r: %ld dstart: %ld d0: %ld\n", gid, final_d, doRun, r0, dstart, d0);
 #endif
     // printf("\n[POCL] d0=%ld r0=%ld  cv=%ld\n", d0, r0, p_final_d_r[0]);
     
