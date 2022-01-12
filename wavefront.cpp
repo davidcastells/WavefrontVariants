@@ -92,6 +92,8 @@ int gPid = 0;           // OpenCL platform ID
 int gDid = 0;           // OpenCL device ID
 int gWorkgroupSize = 8; // Workgroup size
 
+int gPrintPeriod = -1;
+
 int gExtendAligned = 0; // use aligned reads during extension
 
 int verbose = 0;
@@ -143,6 +145,10 @@ void parseArgs(int argc, char* args[])
         if ((strcmp(args[i], "-wgs") == 0) || (strcmp(args[i], "--workgroup-size") == 0))
         {
             gWorkgroupSize = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-pp") == 0) || (strcmp(args[i], "--print-period") == 0))
+        {
+            gPrintPeriod = atol(args[++i]);
         }
                 
         if (strcmp(args[i], "-P") == 0)
@@ -207,6 +213,8 @@ void usage()
     printf("        Verbose output.\n");
     printf("    %s-vv,--verbose-2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        More verbose output.\n");
+    printf("    %s-pp,--print-period%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the period (in seconds) of printing progress.\n");
     printf("    %s-s,--stats%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Print various statistics.\n");
     printf("\n");
