@@ -47,6 +47,7 @@ extern int gPid;
 extern int gDid;
 extern int gWorkgroupSize;
 extern int gExtendAligned;
+extern int gPrintPeriod;
 
 OCLGPUWavefrontDynamicDiamond2Cols::OCLGPUWavefrontDynamicDiamond2Cols()
 {
@@ -141,6 +142,8 @@ void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, i
 {
     static double lastPrintLap = -1;
     
+    double printPeriod = (gPrintPeriod > 0)? gPrintPeriod : 0.5;
+    
 #define DECIMALS_PERCENT    1000
     if (!verbose)
         return;
@@ -153,10 +156,11 @@ void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, i
     double estimated = (elapsed / (r*r)) * (m_k*m_k);
     int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
     
-    if (elapsed > (lastPrintLap + 0.5))
+    if (elapsed > (lastPrintLap + printPeriod))
     {
+        printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %ld/%ld %.2f%% (ds: %ld) elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT), numds , (int) elapsed, (int) estimated );
+        printf("r %ld/%ld %.2f%% (ds: %ld) elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT), numds , (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
