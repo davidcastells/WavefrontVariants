@@ -8,5 +8,7 @@ wget "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=
 wget "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_003997.3&rettype=fasta" -O NC_003997.3.fasta 
 wget "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=BA000046.3&rettype=fasta" -O BA000046.3.fasta
 wget "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_000021.7&rettype=fasta" -O NC_000021.7.fasta
+wget "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NT_033779.4&rettype=fasta" -O NT_033779.4.fasta 
+wget "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NT_037436.3&rettype=fasta" -O NT_037436.3.fasta
 
-wget "https://ftp.ncbi.nlm.nih.gov/genbank/gbuna1.seq.gz" -O gbuna1.seq.gz 
+#wget "https://ftp.ncbi.nlm.nih.gov/genbank/gbuna1.seq.gz" -O gbuna1.seq.gz 
