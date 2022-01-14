@@ -16,32 +16,43 @@
  * limitations under the License.
  */
 
-#ifndef LEV_DP_2_COLS_H_INCLUDED
-#define LEV_DP_2_COLS_H_INCLUDED
+/* 
+ * File:   CUDAWavefrontDynamicDiamond2Cols.h
+ * Author: dcr
+ *
+ * Created on January 14, 2022, 11:49 AM
+ */
+
+#ifndef CUDAWAVEFRONTDYNAMICDIAMOND2COLS_H
+#define CUDAWAVEFRONTDYNAMICDIAMOND2COLS_H
 
 #include "Aligner.h"
 
-/**
-*/
-class LevDP2Cols  : public Aligner
+
+class CUDAWavefrontDynamicDiamond2Cols : public Aligner 
 {
 public:
-    LevDP2Cols();
-    virtual ~LevDP2Cols();
+    CUDAWavefrontDynamicDiamond2Cols();
+    virtual ~CUDAWavefrontDynamicDiamond2Cols();
+
+protected:
 
     void setInput(const char* P, const char* T, long k);
     long getDistance();
     char* getAlignmentPath(long* distance);
     const char* getDescription(); 
 
-protected:
-    void progress(PerformanceLap& lap, long x, int& lastpercent, long cellsAllocated, long cellsAlive);
-
-    long* m_D;
-    long m_top;
+    void setCommonArgs();
+    void invokeKernel(long r, long dstart, long numds);
+    void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds);
     
-    
+    long* m_W;
     long m_k;
+    long m_top;
+    int m_tileLen;
+    long m_final_d_r[2];
+    
 };
 
-#endif
+#endif /* CUDAWAVEFRONTDYNAMICDIAMOND2COLS_H */
+
