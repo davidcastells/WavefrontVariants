@@ -17,13 +17,13 @@
  */
 
 /* 
- * File:   OCLGPUWavefrontDynamicDiamond2Cols.cpp
+ * File:   CUDAWavefrontDynamicDiamond2Cols.cpp
  * Author: dcr
  * 
- * Created on January 9, 2022, 1:24 PM
+ * Created on January 14, 2022, 11:49 AM
  */
 
-#include "OCLGPUWavefrontDynamicDiamond2Cols.h"
+#include "CUDAWavefrontDynamicDiamond2Cols.h"
 #include "utils.h"
 
 
@@ -32,7 +32,6 @@
 #include <assert.h>
 #include <string.h>
 #include <new>
-
 
 #define CARTESIAN_TO_INDEX(y, x, w)		((y)*(w) + (x))
 //#define POLAR_D_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_D_TO_CARTESIAN_Y((d), (r)),POLAR_D_TO_CARTESIAN_X((d), (r)),w)
@@ -61,37 +60,25 @@ extern int gWorkgroupSize;
 extern int gExtendAligned;
 extern int gPrintPeriod;
 
-OCLGPUWavefrontDynamicDiamond2Cols::OCLGPUWavefrontDynamicDiamond2Cols()
+
+CUDAWavefrontDynamicDiamond2Cols::CUDAWavefrontDynamicDiamond2Cols()
 {
-    m_buf_P = NULL;
-    m_buf_T = NULL;
-    m_buf_W = NULL;
-    
-    auto ocl = OCLUtils::getInstance();
-    //ocl->selectPlatform(gPid);
-    ocl->selectDevice(gDid);
-    
-    m_context = ocl->createContext();
-    m_queue = ocl->createQueue();
-    
     m_W = NULL;
 }
 
 
-OCLGPUWavefrontDynamicDiamond2Cols::~OCLGPUWavefrontDynamicDiamond2Cols()
-{
-    auto ocl = OCLUtils::getInstance();
-    ocl->releaseMemObject(m_buf_P);
-    ocl->releaseMemObject(m_buf_T);
-            
-    ocl->releaseContext(m_context);
-    
+CUDAWavefrontDynamicDiamond2Cols::~CUDAWavefrontDynamicDiamond2Cols()
+{    
     if (m_W != NULL)
         delete [] m_W;
+
 }
 
 
-void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
+
+
+
+void CUDAWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
 {
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
@@ -150,7 +137,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     printf("input set\n");
 }
 
-void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds)
+void CUDAWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds)
 {
     static double lastPrintLap = -1;
     
@@ -202,7 +189,7 @@ long previousMultiple(long value, long multiple)
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
 
 
-long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
+long CUDAWavefrontDynamicDiamond2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -294,7 +281,7 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
     return m_top;
 }
     
-void OCLGPUWavefrontDynamicDiamond2Cols::setCommonArgs()
+void CUDAWavefrontDynamicDiamond2Cols::setCommonArgs()
 {
     cl_int ret;
     ret = clSetKernelArg(m_kernel, 0, sizeof(cl_mem), (void *)&m_buf_P);
@@ -326,7 +313,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setCommonArgs()
     CHECK_CL_ERRORS(ret);
 }
 
-void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long numds)
+void CUDAWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long numds)
 {
     cl_int ret;
     
@@ -344,13 +331,13 @@ void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long 
 
 }
 
-char* OCLGPUWavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
+char* CUDAWavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
 {
     printf("Not implemented yet\n");
     exit(-1);
 }
     
-const char* OCLGPUWavefrontDynamicDiamond2Cols::getDescription()
+const char* CUDAWavefrontDynamicDiamond2Cols::getDescription()
 {
-    return "Wavefront Dynamic Diamond 2 columns [ocl_local_tiles] in OpenCL";
+    return "Wavefront Dynamic Diamond 2 columns [ocl_local_tiles] in CUDA";
 }
