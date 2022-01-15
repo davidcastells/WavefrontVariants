@@ -51,6 +51,11 @@ protected:
     long m_top;
     int m_tileLen;
     long m_final_d_r[2];
+  
+    char* m_buf_P;
+    char* m_buf_T;
+    long* m_buf_W;
+    long* m_buf_final_d_r;
     
 };
 
