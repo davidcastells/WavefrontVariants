@@ -57,7 +57,7 @@ def getObjects():
         objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o OCLUtils.o "
 
     if (bHasCUDA):
-        objs += "\\\n\tCUDAWavefrontDynamicDiamond2Cols.o "
+        objs += "\\\n\tCUDAWavefrontDynamicDiamond2Cols.co "
 
     return objs;
 
@@ -90,6 +90,11 @@ if (bHasOpenCL):
 f.write("\n")
 f.write("%.o: %.cpp\n")
 f.write("\t" + CC + "  $(OPTIMIZATION) $(CFLAGS) -I . -c $< -o $@\n")
+
+f.write("\n")
+f.write("%.co: %.cu\n")
+f.write("\t" + CC + "  $(OPTIMIZATION) $(CFLAGS) -I . -c $< -o $@\n")
+
 f.write("\n")
 f.write("OBJECTS=" + getObjects() + "\n")
 
@@ -114,3 +119,4 @@ f.close()
 
 print("--> Done!")
 print("Compile with make")
+
