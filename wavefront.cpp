@@ -39,6 +39,7 @@
 #include "OCLGPUWavefrontOriginal2Cols.h"
 #include "OCLFPGAWavefrontOriginal2Cols.h"
 #include "OCLGPUWavefrontDynamicDiamond2Cols.h"
+#include "CUDAWavefrontDynamicDiamond2Cols.h"
 
 int wavefront_classic(const char* P, const char* T, int m, int n, int k);
 int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
@@ -93,6 +94,7 @@ int doWFD2 = 0;
 int doWFDD = 0;
 int doWFDD2 = 0;
 int doWFDD2OCL = 0;
+int doWFDD2CUDA = 0;
 
 int doAlignmentPath = 0;
 
@@ -199,6 +201,8 @@ void parseArgs(int argc, char* args[])
             doWFDD2 = 1;		
         if (strcmp(args[i], "-WFDD2OCL") == 0)
             doWFDD2OCL = 1;
+        if (strcmp(args[i], "-WFDD2CU") == 0)
+            doWFDD2CUDA = 1;
 
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
             verbose = 1;
@@ -273,6 +277,8 @@ void usage()
     printf("        Use the wavefront dynamic diamond approach with 2 columns.\n");
     printf("    %s-WFDD2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach with 2 columns in OpenCL.\n");
+    printf("    %s-WFDD2CU%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Use the wavefront dynamic diamond approach with 2 columns in CUDA.\n");
     printf("\n");
 
     printf("  %sOperational Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -446,6 +452,12 @@ int main(int argc, char* args[])
             OCLGPUWavefrontDynamicDiamond2Cols aligner;
             aligner.execute(gP, gT, gK, doAlignmentPath);
         }
+    }
+    
+    if (doWFDD2CUDA)
+    {
+        CUDAWavefrontDynamicDiamond2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
     }
 
     return 0;
