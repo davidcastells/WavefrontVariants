@@ -72,7 +72,8 @@
  * @param tileLen
  * @return 
  */
-__forceinline __device__ int isInLocalBlock(int ld, int lr, int tileLen)
+__forceinline__ __device__ 
+int isInLocalBlock(int ld, int lr, int tileLen)
 {
     if (lr < 0)
         return 0;
@@ -97,7 +98,8 @@ __forceinline __device__ int isInLocalBlock(int ld, int lr, int tileLen)
     return ((idx >= 0) && (idx <= 2*tileLen*tileLen));
 }
 
-__forceinline __device__ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
+__forceinline__ __device__
+int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 {
     int maxd = 2*tileLen-lr-1;
     if (abs(ld) == maxd)
@@ -110,7 +112,8 @@ __forceinline __device__ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
     return 0;
 }
 
-__forceinline __device__ long extendUnaligned(GLOBAL_STORE const char* P, 
+__forceinline__ __device__
+long extendUnaligned(GLOBAL_STORE const char* P, 
             GLOBAL_STORE const char* T, long m, long n, long pi, long ti)
 {
     long e = 0;
@@ -130,8 +133,9 @@ __forceinline __device__ long extendUnaligned(GLOBAL_STORE const char* P,
 #define ctz(x) (__ffsll(x) - 1)
 
 #define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
-
-__forceinline __device__ long extendAligned(GLOBAL_STORE const char* P, 
+ 
+__forceinline__ __device__
+long extendAligned(GLOBAL_STORE const char* P, 
         GLOBAL_STORE const char* T, long m, long n, long pi, long ti)
 {
     int pbv; // P valid bytes
@@ -235,7 +239,8 @@ loop:
 
 
 
-__forceinline __device__ long extend(GLOBAL_STORE const char* P,
+__forceinline__ __device__
+long cuda_extend(GLOBAL_STORE const char* P,
         GLOBAL_STORE const char* T, long m, long n, long pi, long ti)
 {    
 #ifdef EXTEND_ALIGNED
@@ -245,7 +250,8 @@ __forceinline __device__ long extend(GLOBAL_STORE const char* P,
 #endif
 }
 
-__forceinline __device__ int polarExistsInW(long d, long r)
+__forceinline__ __device__
+int cuda_polarExistsInW(long d, long r)
 {
     long x = POLAR_W_TO_CARTESIAN_X(d,r);
     long y = POLAR_W_TO_CARTESIAN_Y(d,r);
@@ -258,7 +264,8 @@ __forceinline __device__ int polarExistsInW(long d, long r)
 #define READ_W(d,r, ld, lr)     (readFromW(m_W, localW, (d), (r), m_k, tileLen, ld, lr))
 
 
-__forceinline __device__ void writeToW(GLOBAL_STORE long* m_W,
+__forceinline__ __device__
+void writeToW(GLOBAL_STORE long* m_W,
         LOCAL_STORE long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
 {    
     int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
@@ -279,7 +286,8 @@ __forceinline __device__ void writeToW(GLOBAL_STORE long* m_W,
     }
 }
 
-__forceinline __device__ long readFromW(GLOBAL_STORE long* m_W,
+__forceinline__ __device__
+long readFromW(GLOBAL_STORE long* m_W,
         LOCAL_STORE long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
 {
     int isInLocal = isInLocalBlock(ld, lr, tileLen);
@@ -310,7 +318,8 @@ __forceinline __device__ long readFromW(GLOBAL_STORE long* m_W,
     }
 }
 
-__forceinline __device__ void processCell(GLOBAL_STORE char* P, 
+__forceinline__ __device__
+void processCell(GLOBAL_STORE char* P, 
         GLOBAL_STORE char* T, 
         long m_m, 
         long m_n,
@@ -329,22 +338,22 @@ __forceinline __device__ void processCell(GLOBAL_STORE char* P,
     long m_top = max2(m_m,m_n);
 
     // early exit for useless work items
-    if (!polarExistsInW(d,r))
+    if (!cuda_polarExistsInW(d,r))
         return;
             
     if (r == 0)
     {
         if (d == 0)
             // initial case
-            WRITE_W(d, r, extend(P, T, m_m, m_n, 0, 0));
+            WRITE_W(d, r, cuda_extend(P, T, m_m, m_n, 0, 0));
         else
             WRITE_W(d, r, 0);
     }
     else
     {
-        long diag_up = (polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1) : 0;
-        long left = (polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;
-        long diag_down = (polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;
+        long diag_up = (cuda_polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1) : 0;
+        long left = (cuda_polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;
+        long diag_down = (cuda_polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;
 
         long compute;
 
@@ -374,7 +383,7 @@ __forceinline __device__ void processCell(GLOBAL_STORE char* P,
 
         if ((ex < m_n) && (ey < m_m))
         {
-            long extendv = extend(P, T, m_m, m_n, ey, ex);
+            long extendv = cuda_extend(P, T, m_m, m_n, ey, ex);
             long extended = compute + extendv;
 
             WRITE_W(d, r, extended);
@@ -433,7 +442,7 @@ void wfdd2cols(
         int tileLen,
         long dstart)
 {
-    LOCAL_STORE long localW[2*TILE_LEN_MAX*TILE_LEN_MAX];
+    long localW[2*TILE_LEN_MAX*TILE_LEN_MAX];
 
     size_t gid = blockIdx.x; // get_global_id(0);
 
@@ -588,12 +597,12 @@ void CUDAWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int
  * @param multiple
  * @return 
  */
-long nextMultiple(long value, long multiple)
+static long nextMultiple(long value, long multiple)
 {
    return ((value + (multiple-1)) / multiple) * multiple; 
 }
 
-long previousMultiple(long value, long multiple)
+static long previousMultiple(long value, long multiple)
 {
    return ((value - (multiple-1)) / multiple) * multiple; 
 }
@@ -700,7 +709,7 @@ void CUDAWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long nu
 {
     long k = max2(m_m,m_n);
 
-    wfdd2cols<<<numds,1>>>(m_buf_P, m_buf_T, m_m, m_n, r, k, m_buf_W, m_buf_final_d_r, m_tileLen, dstart);
+    wfdd2cols<<<numds, gWorkgroupSize>>>(m_buf_P, m_buf_T, m_m, m_n, r, k, m_buf_W, m_buf_final_d_r, m_tileLen, dstart);
 
 }
 
