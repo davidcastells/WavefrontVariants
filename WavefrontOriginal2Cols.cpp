@@ -386,7 +386,7 @@ long WavefrontOriginal2Cols::getDistance()
 
                 if ((d == final_d) && extended >= m_top)
                 {
-                        printf("Finishing d=%d r=%d\n", d, r);
+                        printf("Finishing d=%ld r=%ld\n", d, r);
                         ret = r;
                         goto end_loop;
                 }
