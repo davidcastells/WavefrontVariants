@@ -51,18 +51,17 @@ public:
                     printf("Alignment path:\n");
                     //printf(gT);
                     //printf("\n");
-                    printf(path);
-                    printf("\n");
+                    printf("%s\n", path);
                     //printf(gP);
                     //printf("\n");
-                    printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(),  ed, lap.lap());
+                    printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(),  ed, lap.lap());
                     freePath(path);
             }
             else
             {
                     long ed = getDistance();
                     lap.stop();
-                    printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+                    printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
                     printf("m x n = %ld x %ld\n", m_m, m_n);
                     printf("Equivalent GCUPS: %f\n", (((double)m_m*m_n)/(lap.lap() * 1E9)));
             }
