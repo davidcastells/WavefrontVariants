@@ -466,7 +466,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
-        printf(source.c_str());
+        printf("%s", source.c_str());
         printf("\n-------------------------------\n");
         printf("\n");
     }
@@ -503,7 +503,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string
     // Print the log
     printf("BUILD INFO:\n");
     printf("Compilation flags: %s\n", options.c_str());
-    printf(log);
+    printf("%s", log);
     printf("\n");
     free(log);
         
