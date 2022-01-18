@@ -257,27 +257,27 @@ void usage()
     printf("\n");
 
     printf("  %sAlignment Method Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
-    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with full table (no wavefront)\n");
-    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with 2 columns (no wavefront)\n");
-    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach.\n");
-    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach with 2 columns.\n");
-    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach with 2 columns in OpenCL.\n");
-    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront approach with extend table precomputation.\n");
-    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront diamond approach.\n");
-    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach.\n");
-    printf("    %s-WFDD2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFDD2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END );
     printf("        Use the wavefront dynamic diamond approach with 2 columns.\n");
-    printf("    %s-WFDD2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFDD2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach with 2 columns in OpenCL.\n");
-    printf("    %s-WFDD2CU%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFDD2CU%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach with 2 columns in CUDA.\n");
     printf("\n");
 
@@ -351,7 +351,7 @@ int main(int argc, char* args[])
     //printf("T=%s\n", T);
     printf("Wavefront algorithm test\n");
 //        printf("using %d threads\n", omp_get_max_threads());
-    printf("m=%d n=%d k=%d\n", gM, gN, gK);
+    printf("m=%ld n=%ld k=%ld\n", gM, gN, gK);
 
 //        printf("do alignment: %d\n", doAlignmentPath);
 
