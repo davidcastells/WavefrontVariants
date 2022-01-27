@@ -3,7 +3,9 @@ print('Wavefront variants Python based configure script')
 print('Copyright (C) 2021, David Castells-Rufas <david.castells@uab.cat>')
 print('Universitat Autonoma de Barcelona')
 
+
 import os
+import sys
 
 def sysexec(cmd):
     stream = os.popen(cmd)
@@ -18,6 +20,9 @@ def whereis(cmd):
     return part[1]
 
 def hasCUDASupport():
+    if ("--with-CUDA" in sys.argv):
+        return True
+
     return (len(whereis("nvcc")) > 0)
 
 def hasOpenCLSupport():
