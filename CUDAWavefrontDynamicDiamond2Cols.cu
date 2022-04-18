@@ -120,7 +120,10 @@ long extendUnaligned(GLOBAL_STORE const char* P,
 
     while (pi < m && ti < n)
     {
-            if (P[pi] != T[ti])
+	char pc = __ldg(&P[pi]);
+	char tc = __ldg(&T[ti]);
+
+            if (pc != tc)
                     return e;
             e++;
             pi++;
@@ -431,18 +434,18 @@ void processCell(GLOBAL_STORE char* P,
  */
 __global__ 
 void wfdd2cols(
-        GLOBAL_STORE char* P, 
-        GLOBAL_STORE char* T, 
+        GLOBAL_STORE char* __restrict__ P, 
+        GLOBAL_STORE char* __restrict__ T, 
         long m_m, 
         long m_n, 
         long r0, 
         long m_k,  
-        GLOBAL_STORE long* m_W,
-        GLOBAL_STORE long* p_final_d_r,
+        GLOBAL_STORE long* __restrict__ m_W,
+        GLOBAL_STORE long* __restrict__ p_final_d_r,
         int tileLen,
         long dstart)
 {
-    long localW[2*TILE_LEN_MAX*TILE_LEN_MAX];
+    __shared__ long localW[2*TILE_LEN_MAX*TILE_LEN_MAX];
 
     size_t gid = blockIdx.x; // get_global_id(0);
 
