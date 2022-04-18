@@ -35,6 +35,7 @@
 #include "WavefrontDynamicDiamond2Cols.h"
 #include "utils.h"
 #include "fasta.h"
+#include "TextFileReader.h"
 #include "OCLUtils.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
 #include "OCLFPGAWavefrontOriginal2Cols.h"
@@ -308,8 +309,6 @@ int main(int argc, char* args[])
 {
     parseArgs(argc, args);
 
-    FastaInfo fastaP;
-    FastaInfo fastaT;
 
     if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
     {
@@ -324,15 +323,32 @@ int main(int argc, char* args[])
     }
     else if (gfP != NULL)
     {
-            printf("Reading input files\n");
+        if (ends_with(gfP, ".fasta"))
+	    {
+	        // We process Fasta files
+	        FastaInfo fastaP;
+	        FastaInfo fastaT;
+	        
+	        printf("Reading input files\n");
             fastaP = FastaReader::read(gfP);
             fastaT = FastaReader::read(gfT);
 
             gP = fastaP.seq;
             gT = fastaT.seq;
 
-            gM = strlen(gP);
-            gN = strlen(gT);
+
+        }
+        else
+        {
+            //printf("Non fasta files not supported yet\n");
+            //exit(-1);
+            // Other files are just compared as is
+            gP = TextFileReader::read(gfP);
+            gT = TextFileReader::read(gfT);
+        }
+
+        gM = strlen(gP);
+        gN = strlen(gT);
     }
     else
     {
