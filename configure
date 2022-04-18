@@ -1,6 +1,6 @@
 #!/usr/bin/python
 print('Wavefront variants Python based configure script')
-print('Copyright (C) 2021, David Castells-Rufas <david.castells@uab.cat>')
+print('Copyright (C) 2021-2022, David Castells-Rufas <david.castells@uab.cat>')
 print('Universitat Autonoma de Barcelona')
 
 import os
@@ -51,7 +51,7 @@ def getObjects():
     objs =  """wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
 \tWavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o  \\
 \tWavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o \\
-\tWavefrontDynamicDiamond2Cols.o fasta.o PerformanceLap.o """
+\tWavefrontDynamicDiamond2Cols.o fasta.o utils.o TextFileReader.o PerformanceLap.o """
 
     if (bHasOpenCL):
         objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o OCLUtils.o "
