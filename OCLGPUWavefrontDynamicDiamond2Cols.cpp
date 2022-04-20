@@ -54,12 +54,17 @@
 #define CARTESIAN_TO_POLAR_W_D(y, x)		((x)-(y))
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
+//#define NUMBER_OF_INVOCATIONS_PER_READ 100
+#define NUMBER_OF_INVOCATIONS_PER_READ gEnqueuedInvocations
+
 extern int verbose;
 extern int gPid;
 extern int gDid;
 extern int gWorkgroupSize;
 extern int gExtendAligned;
 extern int gPrintPeriod;
+extern int gEnqueuedInvocations;
+extern int gTileLen;
 
 OCLGPUWavefrontDynamicDiamond2Cols::OCLGPUWavefrontDynamicDiamond2Cols()
 {
@@ -99,7 +104,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
-    m_tileLen = 3;
+    m_tileLen = gTileLen;
 
     long size = (2*m_tileLen)*(2*k+1);
 
@@ -199,7 +204,6 @@ long previousMultiple(long value, long multiple)
    return ((value - (multiple-1)) / multiple) * multiple; 
 }
 
-#define NUMBER_OF_INVOCATIONS_PER_READ 100
 
 
 long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
