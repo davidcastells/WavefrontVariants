@@ -24,6 +24,7 @@
 #include <stdexcept>
 
 #include "PerformanceLap.h"
+#include "EdlibAligner.h"
 #include "LevDP.h"
 #include "LevDP2Cols.h"
 #include "WavefrontOriginal.h"
@@ -83,7 +84,7 @@ void generatePT(char** pP, char** pT, int m, int n)
 	}
 }
 
-
+int doED = 0;               // Edlib
 int doDP = 0;
 int doDP2 = 0;
 int doWFO = 0;
@@ -99,9 +100,9 @@ int doWFDD2CUDA = 0;
 
 int doAlignmentPath = 0;
 
-long gM = 100;
-long gN = 100;
-long gK = 100;
+long gM = 100;          // Pattern sequence length
+long gN = 100;          // Test sequence length
+long gK = 100;          // Maximum allowed error
 
 char* gP = NULL;
 char* gT = NULL;
@@ -119,6 +120,9 @@ int gExtendAligned = 0; // use aligned reads during extension
 
 int verbose = 0;
 int gStats = 0;
+
+int gEnqueuedInvocations = 100;
+int gTileLen = 3;       // Tile length
 
 std::string gExeDir = ".";
 
@@ -157,7 +161,6 @@ void parseArgs(int argc, char* args[])
         if ((strcmp(args[i], "-pid") == 0) || (strcmp(args[i], "--opencl-platform-id") == 0))
         {
             gPid = atol(args[++i]);
-//            printf("gpid = %d\n", gPid);
         }
         if ((strcmp(args[i], "-did") == 0) || (strcmp(args[i], "--opencl-device-id") == 0))
         {
@@ -171,6 +174,14 @@ void parseArgs(int argc, char* args[])
         {
             gPrintPeriod = atol(args[++i]);
         }
+        if ((strcmp(args[i], "-qi") == 0) || (strcmp(args[i], "--enqueued-invocations") == 0))
+        {
+            gEnqueuedInvocations = atoi(args[++i]);
+        }
+        if ((strcmp(args[i], "-tl") == 0) || (strcmp(args[i], "--tile-length") == 0))
+        {
+            gTileLen = atoi(args[++i]);
+        }
                 
         if (strcmp(args[i], "-P") == 0)
             gP = args[++i];
@@ -180,6 +191,9 @@ void parseArgs(int argc, char* args[])
             gfP = args[++i];
         if (strcmp(args[i], "-fT") == 0)
             gfT = args[++i];
+            
+        if (strcmp(args[i], "-ED") == 0)
+            doED = 1;
         if (strcmp(args[i], "-DP") == 0)
             doDP = 1;
         if (strcmp(args[i], "-DP2") == 0)
@@ -258,6 +272,8 @@ void usage()
     printf("\n");
 
     printf("  %sAlignment Method Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s-ED%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Use Edlib Global Alignment (no wavefront)\n");
     printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with full table (no wavefront)\n");
     printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -289,6 +305,10 @@ void usage()
     printf("        Print alignment path to transforms T into P.\n");
     printf("    %s-ea,--extend-aligned%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Do extension phase with aligned read operations.\n");    
+    printf("    %s-qi,--enqueued-invocations%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Number of enqueued kernel invocations before checking status.\n");
+    printf("    %s-tl,--tile-length%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Tile length.\n");
     printf("\n");
 
 
@@ -372,6 +392,11 @@ int main(int argc, char* args[])
 //        printf("do alignment: %d\n", doAlignmentPath);
 
 
+    if (doED)
+    {
+        EdlibAligner aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
     // Test Dynamic Programming Levenshtein distance
     if (doDP)
     {	
