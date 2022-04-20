@@ -1,6 +1,6 @@
 /**
  * 
- * Copyright (C) 2021, David Castells-Rufas <david.castells@uab.cat>, 
+ * Copyright (C) 2021-2022, David Castells-Rufas <david.castells@uab.cat>, 
  * Universitat Autonoma de Barcelona  
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
