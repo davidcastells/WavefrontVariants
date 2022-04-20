@@ -8,6 +8,11 @@ def split_multiple(s, seps):
             res += seq.split(sep)
     return res
     
+def testED(f1, f2):
+    cmd = '../wavefront -ED -fP ../data/{} -fT ../data/{} -wgs 32 -v -k -1'.format(f1,f2)
+    print(cmd)
+    os.system(cmd)
+    
 def test(f1, f2):
     cmd = '../wavefront -WFDD2OCL -fP ../data/{} -fT ../data/{} -wgs 32 -v -k -1'.format(f1,f2)
     print(cmd)
@@ -39,14 +44,14 @@ def testLong(f1, f2):
     
 # CUDAlign 1.0 tests
 
-test('NC_000898.1.fasta', 'NC_007605.1.fasta')
+#test('NC_000898.1.fasta', 'NC_007605.1.fasta')
 #test('NC_003064.2.fasta', 'NC_000914.1.fasta')
 #test('CP000051.1.fasta', 'AE002160.2.fasta')
-#test('BA000035.2.fasta', 'BX927147.1.fasta')
-#test('AE016879.1.fasta', 'AE017225.1.fasta')
-#test('NC_005027.1.fasta', 'NC_003997.3.fasta')
-#testLong('NT_033779.4.fasta', 'NT_037436.3.fasta') 
-#testLong('BA000046.3.fasta', 'NC_000021.7.fasta') 
+testED('BA000035.2.fasta', 'BX927147.1.fasta')
+testED('AE016879.1.fasta', 'AE017225.1.fasta')
+testED('NC_005027.1.fasta', 'NC_003997.3.fasta')
+testED('NT_033779.4.fasta', 'NT_037436.3.fasta') 
+testED('BA000046.3.fasta', 'NC_000021.7.fasta') 
 
 
 
