@@ -53,7 +53,7 @@ print("--> Checking FPGA Platform:\t{}".format( "[OK]" if (bHasFPGA) else "[None
 print("--> gcc version: {}".format(getGccVersion()))
 
 def getObjects():
-    objs =  """wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
+    objs =  """wavefront.o edlib.o EdlibAligner.o LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
 \tWavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o  \\
 \tWavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o \\
 \tWavefrontDynamicDiamond2Cols.o fasta.o utils.o TextFileReader.o PerformanceLap.o """
