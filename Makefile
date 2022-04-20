@@ -1,4 +1,4 @@
-OPTIMIZATION=-O2
+OPTIMIZATION=-O3
 
 CFLAGS=-g -gdwarf-4 
 #-fpic -fopenmp 
@@ -17,4 +17,4 @@ clean:
 	rm -f wavefront
 	
 wavefront: $(OBJECTS)
-	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -lOpenCL.dll -o wavefront
+	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) -lOpenCL -o wavefront
