@@ -89,6 +89,7 @@ void OCLUtils::selectPlatform(cl_uint selected_platform_index)
             {
                     printf(" [Selected]");
                     selected_platform_index = i;
+                    m_selectedPlatformName = platform_name;
                     // do not stop here, just want to see all available platforms
             }
 
@@ -163,6 +164,15 @@ void  OCLUtils::selectDevice(cl_uint selected_device_index)
         printf("\n");
         fflush(stdout);
     }
+}
+
+
+int OCLUtils::contains(std::string& str, const char* q)
+{
+    if (str.find(std::string(q)) != std::string::npos) {
+        return 1;
+    }
+    return 0;
 }
 
 
@@ -350,19 +360,19 @@ std::string OCLUtils::loadSourceFile(const char* filename)
     return ret;
 }
 
-cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
+cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string& options)
 {
     printf("Loading %s\n", sourceFile);
     cl_program program;
       
     std::string source = loadSourceFile(sourceFile);
     
-    if (verbose)
+    if (0) // (verbose)
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
-        printf(source.c_str());
-        printf("\n-------------------------------\n");
+        printf("%s\n", source.c_str());
+        printf("-------------------------------\n");
         printf("\n");
     }
     const char* sources[] = {source.c_str()};
@@ -374,10 +384,13 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     cl_device_id device_ids[] = {m_deviceId};
     
-    const char* options = "-g"; //  -cl-opt-disable";
+    if (contains(m_selectedPlatformName, "Portable Computing Language"))
+        options += "-g "; // -cl-opt-disable"; 
+    else if (contains(m_selectedPlatformName, "NVIDIA"))
+        options += "-cl-nv-verbose"; 
     
     PerformanceLap lap;
-    err = clBuildProgram(program, 1, device_ids, options, build_notify, NULL);
+    err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
 //    CHECK_CL_ERRORS(err);
     
     // Determine the size of the log
@@ -492,8 +505,8 @@ OCLQueue::~OCLQueue()
 
 void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
 {
-    size_t wgSize[3] = {1, 1, 1};
-    size_t gSize[3] = {workitems, 1, 1};
+    size_t wgSize[3] = {32, 1, 1};
+    size_t gSize[3] = {(workitems+31)/32*32, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
     CHECK_CL_ERRORS(ret);
@@ -510,5 +523,13 @@ void OCLQueue::readBuffer(cl_mem buf, void* dst, size_t size )
 {
     cl_int ret;
     ret = clEnqueueReadBuffer(m_queue, buf, CL_TRUE, 0, size, dst, 0, NULL, NULL);
+    CHECK_CL_ERRORS(ret);
+}
+
+
+void OCLQueue::finish()
+{
+    cl_int ret;
+    ret = clFinish(m_queue);
     CHECK_CL_ERRORS(ret);
 }
