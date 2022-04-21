@@ -47,10 +47,11 @@ public:
     void releaseMemObject(cl_mem& p);
     void releaseContext(cl_context context);
     OCLQueue* createQueue();
-    cl_program createProgramFromSource(const char* sourceFile);
+    cl_program createProgramFromSource(const char* sourceFile, std::string& options);
     cl_kernel createKernel(const char* name);
     int fileExists(const char *file_name); 
     std::string loadSourceFile(const char* filename);
+    int contains(std::string& str, const char* q);
 
     
     static std::string errorToStr(cl_int err);
@@ -60,6 +61,9 @@ private:
     cl_context m_context;
     cl_program m_program;
     std::vector<cl_platform_id> m_platforms;
+    
+    
+    std::string m_selectedPlatformName;
 };
 
 class OCLQueue
@@ -71,6 +75,7 @@ public:
     void invokeKernel1D(cl_kernel kernel, size_t workitems);
     void writeBuffer(cl_mem buf, void* src, size_t size );
     void readBuffer(cl_mem buf, void* dst, size_t size);
+    void finish();
 
 public:
     cl_command_queue m_queue;
