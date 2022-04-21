@@ -116,7 +116,8 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
-    ocl->createProgramFromSource("WFO2ColsGPU.cl");
+    std::string options = "";
+    ocl->createProgramFromSource("WFO2ColsGPU.cl", options);
     m_kernel = ocl->createKernel("wfo2cols");
     
     printf("input set\n");
