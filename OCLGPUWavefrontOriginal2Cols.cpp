@@ -184,7 +184,7 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         else
             progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
-        if (((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0) && (r > 0))
+        //if (((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0) && (r > 0))
         {
             m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
                         
