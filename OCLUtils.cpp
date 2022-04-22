@@ -434,7 +434,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
       
     std::string source = loadSourceFile(sourceFile);
     
-    if (verbose)
+    if (verbose > 1)
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
