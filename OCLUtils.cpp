@@ -590,8 +590,8 @@ OCLQueue::~OCLQueue()
 
 void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
 {
-    size_t wgSize[3] = {1, 1, 1};
-    size_t gSize[3] = {workitems, 1, 1};
+    size_t wgSize[3] = {32, 1, 1};
+    size_t gSize[3] = {(workitems+31)/32*32, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
     CHECK_CL_ERRORS(ret);
@@ -608,5 +608,12 @@ void OCLQueue::readBuffer(cl_mem buf, void* dst, size_t size )
 {
     cl_int ret;
     ret = clEnqueueReadBuffer(m_queue, buf, CL_TRUE, 0, size, dst, 0, NULL, NULL);
+    CHECK_CL_ERRORS(ret);
+}
+
+void OCLQueue::finish()
+{
+    cl_int ret;
+    ret = clFinish(m_queue);
     CHECK_CL_ERRORS(ret);
 }
