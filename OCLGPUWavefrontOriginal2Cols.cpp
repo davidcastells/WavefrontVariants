@@ -43,6 +43,7 @@
 
 extern int verbose;
 extern int gPid;
+extern int gMeasureIterationTime;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -165,42 +166,37 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
 
     setCommonArgs();
     
-    double thisT;
-    double lastT = 0;
-    
-    printf("r,time\n");
-    
+    if (gMeasureIterationTime)
+        printf("r,time\n");
+            
     for (long r=0; r < m_k; r++)
     {
-        //lap.start();
         invokeKernel(r);
-        //lap.stop();
-        
-        //thisT = lap.lap();
-        
-        /*if (fabs(thisT-lastT) > 0.00001)
+
+        if (gMeasureIterationTime)
         {
-            printf("%ld,%f\n", r-1, lastT);
-            printf("%ld,%f\n", r, thisT);
-            lastT = thisT;
-        }*/
-        
-        //progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+            if (((r % 1000) == 0) & (r>0))
+            {
+                lap.stop();
+                printf("%ld, %f\n", r, lap.lap());
+            }
+        }        
+        else
+            progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
         if (((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0) && (r > 0))
         {
             m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
-            
-            lap.stop();
-            printf("%ld,%f\n", r, lap.lap());
-            
+                        
             if (m_final_d_r[0] >= m_top)
                 return m_final_d_r[1];
         }
     }
     
     lastpercent--;
-    progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+    
+    if (!gMeasureIterationTime)
+        progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
 
     return m_top;
 }
