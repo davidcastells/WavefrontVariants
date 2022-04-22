@@ -85,6 +85,8 @@ char* gfT = NULL;
 
 int gPid = 0;
 
+int gMeasureIterationTime = 0;
+
 int verbose = 0;
 
 void usage();
@@ -150,6 +152,8 @@ void parseArgs(int argc, char* args[])
                 verbose = 1;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
                 usage();
+        if (strcmp(args[i], "--measure-iteration-time") == 0)
+            gMeasureIterationTime = 1;
     }
 }
 
@@ -216,6 +220,12 @@ void usage()
     printf("  %sOpenCL Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("    %s-pid,--opencl-platform-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Index of the OpenCL platform to use (select from the list).\n");
+    printf("\n");
+    
+    printf("  %sPerformance Analysis Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s--measure-iteration-time%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Reports the cummulative time as iterations progress.\n");
+
     printf("\n");
 
     exit(0);
