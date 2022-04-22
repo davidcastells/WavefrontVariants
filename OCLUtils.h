@@ -84,6 +84,7 @@ public:
     void invokeKernel1D(cl_kernel kernel, size_t workitems);
     void writeBuffer(cl_mem buf, void* src, size_t size );
     void readBuffer(cl_mem buf, void* dst, size_t size);
+    void finish();
 
 public:
     cl_command_queue m_queue;
