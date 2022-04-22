@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <string.h>
 #include <new>
-
+#include <math.h>
 
 #define CARTESIAN_TO_INDEX(y, x, w)		((y)*(w) + (x))
 //#define POLAR_D_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_D_TO_CARTESIAN_Y((d), (r)),POLAR_D_TO_CARTESIAN_X((d), (r)),w)
@@ -165,15 +165,34 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
 
     setCommonArgs();
     
+    double thisT;
+    double lastT = 0;
+    
+    printf("r,time\n");
+    
     for (long r=0; r < m_k; r++)
     {
+        //lap.start();
         invokeKernel(r);
-
-        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+        //lap.stop();
         
-        if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
+        //thisT = lap.lap();
+        
+        /*if (fabs(thisT-lastT) > 0.00001)
+        {
+            printf("%ld,%f\n", r-1, lastT);
+            printf("%ld,%f\n", r, thisT);
+            lastT = thisT;
+        }*/
+        
+        //progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+        
+        if (((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0) && (r > 0))
         {
             m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+            
+            lap.stop();
+            printf("%ld,%f\n", r, lap.lap());
             
             if (m_final_d_r[0] >= m_top)
                 return m_final_d_r[1];
@@ -225,7 +244,7 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
     //long k = max2(m_m,m_n);
     
     m_queue->invokeKernel1D(m_kernel, 2*r+1);
-    
+    // m_queue->finish();
     
 
 }
