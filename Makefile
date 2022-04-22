@@ -1,4 +1,4 @@
-OPTIMIZATION=-O2
+OPTIMIZATION=-O3
 
 OS=`uname -o
 CFLAGS=-g -gdwarf-4 
