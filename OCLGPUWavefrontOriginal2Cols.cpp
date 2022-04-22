@@ -43,6 +43,7 @@
 
 extern int verbose;
 extern int gPid;
+extern int gMeasureIterationTime;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -160,16 +161,24 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     long m_top = max2(m_m,m_n);
 
     setCommonArgs();
-    
+
+    if (gMeasureIterationTime)
+        printf("r,time\n");
+        
     for (long r=0; r < m_k; r++)
     {
-//        printf("\niter:%d top:%ld final_d: %ld index: %ld\n", r, m_top, final_d, POLAR_W_TO_INDEX(final_d, r));
         invokeKernel(r);
 
-        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
-        
-//        for (long q = 0; q < h; q++)
-//            printf("d%ld - W[%ld]=%ld\n", INDEX_TO_POLAR_W_D(q,r), q+(r%2)*h, m_W[q+(r%2)*h]);
+        if (gMeasureIterationTime)
+        {
+            if (((r % 1000) == 0) & (r>0))
+            {
+                lap.stop();
+                printf("%ld, %f\n", r, lap.lap());
+            }
+        }        
+        else
+            progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
         if (m_final_d_r >= m_top)
             return r;
