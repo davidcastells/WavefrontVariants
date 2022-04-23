@@ -357,7 +357,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
       
     std::string source = loadSourceFile(sourceFile);
     
-    if (verbose)
+    if (verbose > 1)
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
@@ -492,8 +492,8 @@ OCLQueue::~OCLQueue()
 
 void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
 {
-    size_t wgSize[3] = {1, 1, 1};
-    size_t gSize[3] = {workitems, 1, 1};
+    size_t wgSize[3] = {32, 1, 1};
+    size_t gSize[3] = {(workitems+31)/32*32, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
     CHECK_CL_ERRORS(ret);
