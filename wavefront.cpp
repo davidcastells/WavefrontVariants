@@ -85,7 +85,12 @@ char* gfT = NULL;
 
 int gPid = 0;
 
+int gMeasureIterationTime = 0;
+
 int verbose = 0;
+
+int gEnqueuedInvocations = 100;
+int gTileLen = 3;       // Tile length
 
 void usage();
 
@@ -117,6 +122,14 @@ void parseArgs(int argc, char* args[])
             gPid = atol(args[++i]);
 //            printf("gpid = %d\n", gPid);
         }
+        if ((strcmp(args[i], "-qi") == 0) || (strcmp(args[i], "--enqueued-invocations") == 0))
+        {
+            gEnqueuedInvocations = atoi(args[++i]);
+        }
+        if ((strcmp(args[i], "-tl") == 0) || (strcmp(args[i], "--tile-length") == 0))
+        {
+            gTileLen = atoi(args[++i]);
+        }
 
         if (strcmp(args[i], "-P") == 0)
             gP = args[++i];
@@ -147,9 +160,11 @@ void parseArgs(int argc, char* args[])
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
-                verbose = 1;
+            verbose = 1;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
-                usage();
+            usage();
+        if (strcmp(args[i], "--measure-iteration-time") == 0)
+            gMeasureIterationTime = 1;
     }
 }
 
@@ -187,21 +202,21 @@ void usage()
     printf("\n");
 
     printf("  %sAlignment Method Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
-    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with full table (no wavefront)\n");
-    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with 2 columns (no wavefront)\n");
-    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach.\n");
-    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach with 2 columns.\n");
-    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach with 2 columns in OpenCL.\n");
-    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront approach with extend table precomputation.\n");
-    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront diamond approach.\n");
-    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach.\n");
     printf("\n");
 
@@ -210,12 +225,23 @@ void usage()
     printf("        Maximum allowed errors (reduce memory usage).\n");
     printf("    %s-a,--align%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Print alignment path to transforms T into P.\n");
+    printf("    %s-ea,--extend-aligned%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Do extension phase with aligned read operations.\n");
+    printf("    %s-qi,--enqueued-invocations%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Number of enqueued kernel invocations before checking status.\n");
+    printf("    %s-tl,--tile-length%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Tile length.\n");
     printf("\n");
 
 
     printf("  %sOpenCL Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("    %s-pid,--opencl-platform-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Index of the OpenCL platform to use (select from the list).\n");
+    printf("\n");
+    
+    printf("  %sPerformance Analysis Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s--measure-iteration-time%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Reports the cummulative time as iterations progress.\n");
     printf("\n");
 
     exit(0);
