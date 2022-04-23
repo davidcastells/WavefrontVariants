@@ -43,6 +43,7 @@
 
 extern int verbose;
 extern int gPid;
+extern int gMeasureIterationTime;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -162,11 +163,23 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
 
     setCommonArgs();
     
+    if (gMeasureIterationTime)
+        printf("r,time\n");
+        
     for (long r=0; r < m_k; r++)
     {
         invokeKernel(r);
 
-        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+        if (gMeasureIterationTime)
+        {
+            if (((r % 1000) == 0) & (r>0))
+            {
+                lap.stop();
+                printf("%ld, %f\n", r, lap.lap());
+            }
+        }        
+        else
+            progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
@@ -177,8 +190,11 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         }
     }
     
-    lastpercent--;
-    progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+    if (!gMeasureIterationTime)
+    {
+        lastpercent--;
+        progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
+    }
 
     return m_top;
 }
@@ -219,12 +235,9 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
     ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
     CHECK_CL_ERRORS(ret);
 
-    long k = max2(m_m,m_n);
+    // long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*k+1);
-    
-    
-
+    m_queue->invokeKernel1D(m_kernel, 2*r+1);
 }
 
 char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(long* distance)
