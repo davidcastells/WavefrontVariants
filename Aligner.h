@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 
+extern int gMeasureIterationTime;
+
 class Aligner
 {
 public:
@@ -37,14 +39,15 @@ public:
 			printf("\n");
 			//printf(gP);
 			//printf("\n");
-			printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(),  ed, lap.lap());
+			printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(),  ed, lap.lap());
 			freePath(path);
 		}
 		else
 		{
 			long ed = getDistance();
 			lap.stop();
-			printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+			if (!gMeasureIterationTime)
+    			printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
 		}
 	}
 };
