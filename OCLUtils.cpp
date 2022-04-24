@@ -18,6 +18,7 @@
 #include <stdio.h>
 
 extern int verbose;
+extern int gWorkgroupSize;
 
 OCLUtils::OCLUtils()
 {
@@ -324,10 +325,24 @@ int OCLUtils::fileExists(const char *file_name)
 #endif
 }
 
-std::string OCLUtils::loadSourceFile(const char* filename)
+std::string OCLUtils::getDir(const char* file_name)
 {
+    std::string str(file_name);
+    std::size_t found = str.find_last_of("/");
+    return str.substr(0,found);
+}
+
+void OCLUtils::setKernelDir(std::string& str)
+{
+    m_kernelDir = str + std::string("/");
+}
+
+std::string OCLUtils::loadSourceFile(const char* filename)
+{   
+    std::string file = m_kernelDir + std::string(filename);
+    
     // Read program file and place content into buffer 
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = fopen(file.c_str(), "r");
 
     if (fp == NULL) 
         throw std::runtime_error(std::string("File not found") + std::string(filename));
@@ -353,11 +368,12 @@ std::string OCLUtils::loadSourceFile(const char* filename)
 
 unsigned char* OCLUtils::loadBinaryFile(const char* filename, size_t *size) 
 {
-  // Open the File
-  FILE* fp;
-  fp = fopen(filename, "rb");
+    std::string file = m_kernelDir + std::string(filename);
+    
+    // Open the File
+    FILE* fp = fopen(file.c_str(), "rb");
   
-  if(fp == 0)
+    if (fp == 0)
       throw std::runtime_error(std::string("File not found") + std::string(filename));
 
   // Get the size of the file
@@ -434,7 +450,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
       
     std::string source = loadSourceFile(sourceFile);
     
-    if (verbose)
+    if (verbose > 1)
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
@@ -590,8 +606,8 @@ OCLQueue::~OCLQueue()
 
 void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
 {
-    size_t wgSize[3] = {1, 1, 1};
-    size_t gSize[3] = {workitems, 1, 1};
+    size_t wgSize[3] = {gWorkgroupSize, 1, 1};
+    size_t gSize[3] = {(workitems+gWorkgroupSize-1)/gWorkgroupSize*gWorkgroupSize, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
     CHECK_CL_ERRORS(ret);
