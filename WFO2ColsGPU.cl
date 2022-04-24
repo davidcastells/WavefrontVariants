@@ -49,7 +49,7 @@ int polarExistsInW(long d, long r)
 void processCell(__global char* P, __global char* T, long m_m,  long m_n, long m_k, __global long* m_W, __global long* p_final_d_r, long d, long r, int tileLen);
 
 /**
- * This is the initial kernel version.
+ * This is a tiled kernel version.
  * The host will create as many work items as the height of the column W
  * most of them will die soon with nothing useful to do
  * 
@@ -57,7 +57,7 @@ void processCell(__global char* P, __global char* T, long m_m,  long m_n, long m
  * @param T the text
  * @param m_m the length of the pattern
  * @param m_n the length of the text
- * @param r radius of the W column to compute
+ * @param r0 radius of the W column to compute
  * @param m_k max number of errors we are going to cover (width of the W pyramid)
  * @param m_W memory for the 2 columns of the W pyramid
  * @param pointer to 2 values (furthest reaching radius, edit distance of the previous value)
@@ -115,8 +115,13 @@ void processCell(__global char* P,
         long r,
         int tileLen)
 {
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
+
+    // we already reached the final point in previous invocations
+    if (p_final_d_r[0] >= m_top)
+        return;
+        
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
 
     // early exit for useless work items
     if (!polarExistsInW(d,r))
@@ -129,6 +134,8 @@ void processCell(__global char* P,
             m_W[POLAR_W_TO_INDEX(d, r)] = extend(P, T, m_m, m_n, 0, 0);
         else
             m_W[POLAR_W_TO_INDEX(d, r)]  = 0;
+            
+        // printf("W[d:%ld,r:%ld]=%ld\n", d, r, m_W[POLAR_W_TO_INDEX(d, r)]);
     }
     else
     {
@@ -150,6 +157,8 @@ void processCell(__global char* P,
             m_W[POLAR_W_TO_INDEX(d, r)] = compute;
             p_final_d_r[0] = compute;   // furthest reaching point
             p_final_d_r[1] = r;         // at edit distance = r
+            
+            // printf("W[d:%ld,r:%ld]=%ld\n", d, r, compute);
             return;
         }
 
@@ -167,6 +176,8 @@ void processCell(__global char* P,
             {
                 p_final_d_r[0] = extended;  // furthest reaching point
                 p_final_d_r[1] = r;         // at edit distance = r
+
+                //printf("W[d:%ld,r:%ld]=%ld\n", d, r, extended);
                 return;
             }
         }
