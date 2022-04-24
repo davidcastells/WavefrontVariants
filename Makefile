@@ -1,26 +1,26 @@
+# Do not modify, this makefile was automatically created by the configure script
 OPTIMIZATION=-O2
-
-OS=`uname -o
-CFLAGS=-g -gdwarf-4 
-#-fpic -fopenmp 
-#CFLAGS=-lopencl
+CFLAGS=-g
 OPENCL=-l OpenCL
 
 %.o: %.cpp
-	g++  $(OPTIMIZATION) $(CFLAGS) -fpermissive -I . -c $< -o $@
-	
-OBJECTS=wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o \
-    WavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o \
-    WavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o \
-    WavefrontDynamicDiamond2Cols.o fasta.o PerformanceLap.o OCLUtils.o \
-    OCLGPUWavefrontOriginal2Cols.o OCLFPGAWavefrontOriginal2Cols.o
-#/usr/lib/libOpenCL.dll.a
+	nvcc  $(OPTIMIZATION) $(CFLAGS) -I . -c $< -o $@
+
+%.o: %.cu
+	nvcc  $(OPTIMIZATION) $(CFLAGS) -I . -c $< -o $@
+
+OBJECTS=wavefront.o LevDP.o LevDP2Cols.o WavefrontOriginal.o  \
+	WavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o  \
+	WavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o \
+	WavefrontDynamicDiamond2Cols.o fasta.o utils.o  PerformanceLap.o \
+	OCLGPUWavefrontOriginal2Cols.o OCLFPGAWavefrontOriginal2Cols.o OCLUtils.o \
+	CUDAWavefrontOriginal2Cols.o 
 
 all: wavefront
 
 clean:
 	rm -f *.o
 	rm -f wavefront
-	
+
 wavefront: $(OBJECTS)
-	g++  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) $(OPENCL) -o wavefront
+	nvcc  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) $(OPENCL) -o wavefront
