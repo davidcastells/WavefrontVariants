@@ -55,8 +55,10 @@ public:
     
     cl_kernel createKernel(const char* name);
     int fileExists(const char *file_name); 
+    static std::string getDir(const char* file_name);
     std::string loadSourceFile(const char* filename);
     unsigned char* loadBinaryFile(const char* filename, size_t *size);
+    void setKernelDir(std::string& file);
     
 
     static int contains(std::string& str, const char* q);
@@ -73,6 +75,7 @@ private:
     std::vector<cl_platform_id> m_platforms;
     
     std::string m_selectedPlatformName;
+    std::string m_kernelDir;
 };
 
 class OCLQueue
