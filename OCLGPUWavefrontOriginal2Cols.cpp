@@ -1,7 +1,19 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * 
+ * Copyright (C) 2021, David Castells-Rufas <david.castells@uab.cat>, 
+ * Universitat Autonoma de Barcelona  
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /* 
@@ -44,6 +56,9 @@
 extern int verbose;
 extern int gPid;
 extern int gDid;
+extern int gTileLen;
+extern int gMeasureIterationTime;
+extern int gEnqueuedInvocations;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -82,7 +97,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
-    m_tileLen = 3;
+    m_tileLen = gTileLen;
 
     long size = (2*m_tileLen)*(2*k+1);
 
@@ -147,7 +162,7 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& la
     }
 }
 
-#define NUMBER_OF_INVOCATIONS_PER_READ 100
+#define NUMBER_OF_INVOCATIONS_PER_READ gEnqueuedInvocations
 
 long OCLGPUWavefrontOriginal2Cols::getDistance()
 {
@@ -171,11 +186,23 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     m_final_d_r[1] = m_top; // estimated distance (now, worst case)
     m_queue->writeBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long) );
 
+    if (gMeasureIterationTime)
+        printf("r,time\n");
+        
     for (long r=0; r < m_k; r+= m_tileLen)
     {
         invokeKernel(r);
 
-        progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
+        if (gMeasureIterationTime)
+        {
+            if (((r % 1000) == 0) & (r>0))
+            {
+                lap.stop();
+                printf("%ld, %f\n", r, lap.lap());
+            }
+        }        
+        else
+            progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
