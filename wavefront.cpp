@@ -17,6 +17,7 @@
 #include "utils.h"
 #include "fasta.h"
 #include "OCLUtils.h"
+#include "CUDAWavefrontOriginal2Cols.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
 #include "OCLFPGAWavefrontOriginal2Cols.h"
 
@@ -67,11 +68,13 @@ int doDP2 = 0;
 int doWFO = 0;
 int doWFO2 = 0;
 int doWFO2OCL = 0;
+int doWFO2CUDA = 0;
 int doWFE = 0;
 int doWFD = 0;
 int doWFD2 = 0;
 int doWFDD = 0;
 int doWFDD2 = 0;
+
 int doAlignmentPath = 0;
 
 long gM = 100;
@@ -84,10 +87,23 @@ char* gT = NULL;
 char* gfP = NULL;
 char* gfT = NULL;
 
-int gPid = 0;   // OpenCL platform ID
-int gDid = 0;   // OpenCL device ID
+int gPid = 0;               // OpenCL platform ID
+int gDid = 0;               // OpenCL device ID
+int gWorkgroupSize = 32;    // Workgroup size
+
+int gPrintPeriod = -1;
+
+int gExtendAligned = 0; // use aligned reads during extension
+
+int gMeasureIterationTime = 0;
 
 int verbose = 0;
+int gStats = 0;
+
+int gEnqueuedInvocations = 100;
+int gTileLen = 3;       // Tile length
+
+std::string gExeDir = ".";
 
 void usage();
 
@@ -123,6 +139,22 @@ void parseArgs(int argc, char* args[])
         {
             gDid = atol(args[++i]);
         }
+        if ((strcmp(args[i], "-wgs") == 0) || (strcmp(args[i], "--workgroup-size") == 0))
+        {
+            gWorkgroupSize = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-pp") == 0) || (strcmp(args[i], "--print-period") == 0))
+        {
+            gPrintPeriod = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-qi") == 0) || (strcmp(args[i], "--enqueued-invocations") == 0))
+        {
+            gEnqueuedInvocations = atoi(args[++i]);
+        }
+        if ((strcmp(args[i], "-tl") == 0) || (strcmp(args[i], "--tile-length") == 0))
+        {
+            gTileLen = atoi(args[++i]);
+        }
 
         if (strcmp(args[i], "-P") == 0)
             gP = args[++i];
@@ -142,6 +174,8 @@ void parseArgs(int argc, char* args[])
             doWFO2 = 1;
         if (strcmp(args[i], "-WFO2OCL") == 0)
             doWFO2OCL = 1;
+        if (strcmp(args[i], "-WFO2CUDA") == 0)
+            doWFO2CUDA = 1;
         if (strcmp(args[i], "-WFE") == 0)
             doWFE = 1;	
         if (strcmp(args[i], "-WFD") == 0)
@@ -153,9 +187,17 @@ void parseArgs(int argc, char* args[])
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
-                verbose = 1;
+            verbose = 1;
+        if ((strcmp(args[i], "-vv") == 0) || (strcmp(args[i], "--verbose-2") == 0))
+            verbose = 2;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
-                usage();
+            usage();
+        if ((strcmp(args[i], "-s") == 0) || (strcmp(args[i], "--stats") == 0))
+            gStats = 1;
+        if ((strcmp(args[i], "-ea") == 0) || (strcmp(args[i], "--extend-aligned") == 0))
+            gExtendAligned = 1;
+        if (strcmp(args[i], "--measure-iteration-time") == 0)
+            gMeasureIterationTime = 1;
     }
 }
 
@@ -175,6 +217,12 @@ void usage()
     printf("        Display the help message.\n");
     printf("    %s-v,--verbose%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Verbose output.\n");
+    printf("    %s-vv,--verbose-2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        More verbose output.\n");
+    printf("    %s-pp,--print-period%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the period (in seconds) of printing progress.\n");
+    printf("    %s-s,--stats%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Print various statistics.\n");
     printf("\n");
 
     printf("  %sInput Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -193,21 +241,23 @@ void usage()
     printf("\n");
 
     printf("  %sAlignment Method Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
-    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-DP%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with full table (no wavefront)\n");
-    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-DP2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the dynamic programming approach with 2 columns (no wavefront)\n");
-    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach.\n");
-    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach with 2 columns.\n");
-    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the original wavefront approach with 2 columns in OpenCL.\n");
-    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFO2CUDA%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Use the original wavefront approach with 2 columns in CUDA.\n");
+    printf("    %s-WFE%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront approach with extend table precomputation.\n");
-    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront diamond approach.\n");
-    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach.\n");
     printf("\n");
 
@@ -224,6 +274,17 @@ void usage()
     printf("        Index of the OpenCL platform to use (select from the list).\n");
     printf("    %s-did,--opencl-device-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Index of the OpenCL device to use (select from the list).\n");
+    printf("\n");
+    
+    printf("  %sExperimental and Performance Analysis Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("    %s--measure-iteration-time%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Reports the cummulative time as iterations progress.\n");
+    printf("    %s-ea,--extend-aligned%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Do extension phase with aligned read operations.\n"); 
+    printf("    %s-qi,--enqueued-invocations%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Number of enqueued kernel invocations before checking status.\n");
+    printf("    %s-tl,--tile-length%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Tile length.\n");
     printf("\n");
 
     exit(0);
@@ -319,6 +380,12 @@ int main(int argc, char* args[])
             OCLGPUWavefrontOriginal2Cols aligner;
             aligner.execute(gP, gT, gK, doAlignmentPath);
         }
+    }
+    
+    if (doWFO2CUDA)
+    {
+        CUDAWavefrontOriginal2Cols aligner;
+        aligner.execute(gP, gT, gK, doAlignmentPath);
     }
 
     // Test Extend Precomputing Wavefront
