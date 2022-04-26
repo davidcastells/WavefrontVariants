@@ -43,6 +43,11 @@ def getGccVersion():
     return part[1].strip()
 
 
+def getNvccVersion():
+    sv = sysexec("nvcc --version")[3];
+    part = sv.split("V");
+    return part[1].strip()
+    
 bHasCUDA = hasCUDASupport()
 bHasOpenCL = hasOpenCLSupport()
 bHasFPGA = hasFPGAPlatform()
@@ -51,6 +56,9 @@ print("--> Checking CUDA Support:\t{}".format( "[OK]" if (bHasCUDA) else "[None]
 print("--> Checking OpenCL Support:\t{}".format( "[OK]" if (bHasOpenCL) else "[None]"))
 print("--> Checking FPGA Platform:\t{}".format( "[OK]" if (bHasFPGA) else "[None]"))
 print("--> gcc version: {}".format(getGccVersion()))
+
+if (bHasCUDA):
+    print("--> nvcc version: {}".format(getNvccVersion()))
 
 def getObjects():
     objs =  """wavefront.o edlib.o EdlibAligner.o LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
@@ -69,16 +77,17 @@ def getObjects():
 
 # generate Makefile
 
-CC = "nvcc" if (hasCUDASupport()) else "g++"
+
 CFLAGS = "-g"
 OPTIMIZATION = "-O3"
 
 if bHasCUDA:
+    CC = "/usr/local/cuda-11/bin/nvcc"
     OPTIMIZATION = ""
-    #CFLAGS = "-g -Xcompiler -O3 -gencode arch=compute_86,code=sm_86 -use_fast_math"
-    CFLAGS = "-g -Xcompiler -O3 -gencode arch=compute_70,code=sm_70 -use_fast_math"
+    CFLAGS += " -Xcompiler -O3 -gencode arch=compute_86,code=sm_86 -use_fast_math"
 
 else:
+    CC = "g++"
     CFLAGS += " -fpermissive "
     if (getGccVersion().split(".")[0]>7):
         CFLAGS += " -gdwarf-4 "
