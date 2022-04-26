@@ -71,9 +71,13 @@ def getObjects():
 
 CC = "nvcc" if (hasCUDASupport()) else "g++"
 CFLAGS = "-g"
+OPTIMIZATION = "-O3"
 
 if bHasCUDA:
-    pass
+    OPTIMIZATION = ""
+    #CFLAGS = "-g -Xcompiler -O3 -gencode arch=compute_86,code=sm_86 -use_fast_math"
+    CFLAGS = "-g -Xcompiler -O3 -gencode arch=compute_70,code=sm_70 -use_fast_math"
+
 else:
     CFLAGS += " -fpermissive "
     if (getGccVersion().split(".")[0]>7):
