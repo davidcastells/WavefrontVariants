@@ -109,6 +109,11 @@ void usage();
 
 void parseArgs(int argc, char* args[])
 {
+    gExeDir = OCLUtils::getDir(args[0]);
+    
+    auto ocl = OCLUtils::getInstance();
+    ocl->setKernelDir(gExeDir);
+    
     for (int i=1; i < argc; i++)
     {
         //printf("parsing %s\n", args[i]);
