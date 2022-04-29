@@ -56,8 +56,12 @@
 extern int verbose;
 extern int gPid;
 extern int gDid;
+extern int gTileLen;
 extern int gWorkgroupSize;
 extern int gExtendAligned;
+extern int gEnqueuedInvocations;
+extern double gPrintPeriod;
+extern char* gLocalTileMemory;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -96,9 +100,19 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
-    m_tileLen = 3;
+    m_tileLen = gTileLen;
+    
+    if (strcmp(gLocalTileMemory, "register") == 0)
+    {
+        m_localStore = "REGISTER_STORE";
+    }
+    else
+    {
+        m_localStore = "SHARED_STORE";
+    }
 
-    long size = (2*m_tileLen)*(2*k+1);
+    //long size = (2*m_tileLen)*(2*k+1);
+    long size = (2)*(2*k+1);
 
     try
     {
@@ -132,7 +146,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     
     auto ocl = OCLUtils::getInstance();
         
-    std::string options = "-D TILE_LEN=" + std::to_string(m_tileLen) + " ";
+    std::string options = "-D TILE_LEN=" + std::to_string(m_tileLen) + " -D " + m_localStore + " -D WORKGROUP_SIZE=" + std::to_string(gWorkgroupSize) + " ";
 
     std::string plName = ocl->getSelectedPlatformName();
     if (OCLUtils::contains(plName, "Portable Computing Language") && (verbose > 1))
@@ -149,6 +163,10 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
 
 void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
+    static double lastPrintLap = 0;
+    
+    double printPeriod = (gPrintPeriod > 0)? gPrintPeriod : 0.5;
+    
 #define DECIMALS_PERCENT    1000
     if (!verbose)
         return;
@@ -161,17 +179,19 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& la
     double estimated = (elapsed / (r*r)) * (m_k*m_k);
     int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
     
-    //if (percent != lastpercent)
+    if (elapsed > (lastPrintLap + printPeriod))
     {
+        printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+        printf("r %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT),  (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
+        lastPrintLap = elapsed;
     }
 }
 
-#define NUMBER_OF_INVOCATIONS_PER_READ 100
+#define NUMBER_OF_INVOCATIONS_PER_READ gEnqueuedInvocations
 
 long OCLGPUWavefrontOriginal2Cols::getDistance()
 {
