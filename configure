@@ -48,7 +48,19 @@ def getNvccVersion():
     part = sv.split("V");
     return part[1].strip()
     
-bHasCUDA = hasCUDASupport()
+    
+if ('--help' in sys.argv or '-h' in sys.argv):
+    print('configure [options]')
+    print('')
+    print('   -h,--help    print this message')
+    print('   --no-cuda    avoid CUDA implementation')
+    quit()
+    
+if ('--no-cuda' in sys.argv):
+    bHasCUDA = False
+else:
+    bHasCUDA = hasCUDASupport()
+    
 bHasOpenCL = hasOpenCLSupport()
 bHasFPGA = hasFPGAPlatform()
 
@@ -70,7 +82,7 @@ def getObjects():
         objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o OCLUtils.o "
 
     if (bHasCUDA):
-        objs += "\\\n\tCUDAWavefrontDynamicDiamond2Cols.o "
+        objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
 
     return objs;
 
@@ -83,8 +95,8 @@ OPTIMIZATION = "-O3"
 
 if bHasCUDA:
     CC = "/usr/local/cuda-11/bin/nvcc"
-    OPTIMIZATION = ""
-    CFLAGS += " -Xcompiler -O3 -gencode arch=compute_86,code=sm_86 -use_fast_math"
+    OPTIMIZATION = "-Xcompiler -O3 "
+    CFLAGS += " -gencode arch=compute_86,code=sm_86 -use_fast_math -D HAS_CUDA"
 
 else:
     CC = "g++"
@@ -99,7 +111,7 @@ print("--> Generating Makefile")
 f = open("Makefile", "w")
 
 f.write("# Do not modify, this makefile was automatically created by the configure script\n")
-f.write("OPTIMIZATION=-O2\n")
+f.write("OPTIMIZATION={}\n".format(OPTIMIZATION))
 f.write("CFLAGS={}\n".format(CFLAGS))
 
 if (bHasOpenCL):
