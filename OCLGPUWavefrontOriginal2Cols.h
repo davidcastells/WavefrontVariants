@@ -48,6 +48,7 @@ public:
     long m_k;
     long m_top;
     int m_tileLen;
+    std::string m_localStore;
     long m_final_d_r[2];
     
     cl_context m_context;
