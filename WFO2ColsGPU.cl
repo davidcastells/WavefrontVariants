@@ -25,8 +25,9 @@
 #define CARTESIAN_TO_POLAR_D_R(y, x)		(((y)>(x))? (x) : (y))
 
 //#define POLAR_W_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_W_TO_CARTESIAN_Y((d), (r)),POLAR_W_TO_CARTESIAN_X((d), (r)),w)
+// #define POLAR_W_TO_INDEX(d, r)                  ((d)+m_k + (((r)%(2*tileLen)) * (2*m_k+1)))
+#define POLAR_W_TO_INDEX(d, r)		((d)+m_k + (((r)%2) * (2*m_k+1)))
 
-#define POLAR_W_TO_INDEX(d, r)                  ((d)+m_k + (((r)%(2*tileLen)) * (2*m_k+1)))
 
 #define POLAR_W_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? -(d) : 0 ) + (r))
 #define POLAR_W_TO_CARTESIAN_X(d,r)		((((d) >= 0)? 0 : (d)) + (r))
@@ -39,7 +40,229 @@
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
-#define LOCAL_STORE     __private
+#ifdef GLOBAL_STORE
+    #define LOCAL_TILE_TYPE     __private
+#endif
+
+#ifdef REGISTER_STORE
+    #if TILE_LEN == 1
+        // we define a tile with len 2
+        typedef struct
+        {
+            long r0_d0;
+            long r1_d0;
+        } LOCAL_TILE;
+        
+        #define LOCAL_TILE_PTR      LOCAL_TILE*
+        
+        void inline __attribute__((always_inline)) 
+        writeLocalW(LOCAL_TILE_PTR localW, long d, long r, long v)
+        {
+            //printf("local_WR(%ld,%ld) = %ld\n", d, r, v);
+            // max 8
+            switch ((r<<3)|(d+2))
+            {
+                case (0<<3)|(0+2):  localW->r0_d0 = v; break;
+                case (1<<3)|(0+2):  localW->r1_d0 = v; break;
+                default:
+                    printf("WRITE ERROR r:%d d:%d\n", r, d);
+
+            }
+            
+            //printf("localW.r0_d0 = %ld\n", localW->r0_d0 );
+
+        }
+        
+        long inline __attribute__((always_inline)) 
+        readLocalW(LOCAL_TILE_PTR localW, long d, long r)
+        {
+            long v; 
+            
+            // max 8
+            switch ((r<<3)|(d+2))
+            {
+                case (0<<3)|(0+2):  v = localW->r0_d0; break;
+                case (1<<3)|(0+2):  v = localW->r1_d0; break;
+                default:
+                    printf("READ ERROR r:%d d:%d\n", r, d);
+            }
+            
+
+            //printf("local_RD(%ld,%ld) = %ld\n", d, r, v);
+            return v;
+        }
+    #endif
+    
+    #if TILE_LEN == 2
+        // we define a tile with len 2
+        typedef struct
+        {
+            long r0_d0;
+            long r1_dm1;
+            long r1_d0;
+            long r1_d1;
+            long r2_dm1;
+            long r2_d0;
+            long r2_d1;
+            long r3_d0;
+        } LOCAL_TILE;
+        
+        #define LOCAL_TILE_PTR      LOCAL_TILE*
+        
+        void inline __attribute__((always_inline)) 
+        writeLocalW(LOCAL_TILE_PTR localW, long d, long r, long v)
+        {
+            //printf("local_WR(%ld,%ld) = %ld\n", d, r, v);
+            // max 8
+            switch ((r<<3)|(d+2))
+            {
+                case (0<<3)|(0+2):  localW->r0_d0 = v; break;
+                case (1<<3)|(-1+2): localW->r1_dm1 = v; break;
+                case (1<<3)|(0+2):  localW->r1_d0 = v; break;
+                case (1<<3)|(1+2):  localW->r1_d1 = v; break;
+                case (2<<3)|(-1+2): localW->r2_dm1 = v; break;
+                case (2<<3)|(0+2):  localW->r2_d0 = v; break;
+                case (2<<3)|(1+2):  localW->r2_d1 = v; break;
+                case (3<<3)|(0+2):  localW->r3_d0 = v; break;
+                default:
+                    printf("WRITE ERROR r:%d d:%d\n", r, d);
+
+            }
+            
+            //printf("localW.r0_d0 = %ld\n", localW->r0_d0 );
+
+        }
+        
+        long inline __attribute__((always_inline)) 
+        readLocalW(LOCAL_TILE_PTR localW, long d, long r)
+        {
+            long v; 
+            
+            // max 8
+            switch ((r<<3)|(d+2))
+            {
+                case (0<<3)|(0+2):  v = localW->r0_d0; break;
+                case (1<<3)|(-1+2): v = localW->r1_dm1; break;
+                case (1<<3)|(0+2):  v = localW->r1_d0; break;
+                case (1<<3)|(1+2):  v = localW->r1_d1; break;
+                case (2<<3)|(-1+2): v = localW->r2_dm1; break;
+                case (2<<3)|(0+2):  v = localW->r2_d0; break;
+                case (2<<3)|(1+2):  v = localW->r2_d1; break;
+                case (3<<3)|(0+2):  v = localW->r3_d0; break;
+                default:
+                    printf("READ ERROR r:%d d:%d\n", r, d);
+            }
+            
+
+            //printf("local_RD(%ld,%ld) = %ld\n", d, r, v);
+            return v;
+        }
+    #endif 
+    
+    #if TILE_LEN == 3
+        // we define a tile with len 3
+        typedef struct
+        {
+            long r0_d0;
+            long r1_dm1;
+            long r1_d0;
+            long r1_d1;
+            long r2_dm2;
+            long r2_dm1;
+            long r2_d0;
+            long r2_d1;
+            long r2_d2;
+            long r3_dm2;
+            long r3_dm1;
+            long r3_d0;
+            long r3_d1;
+            long r3_d2;
+            long r4_dm1;
+            long r4_d0;
+            long r4_d1;
+            long r5_d0;
+        } LOCAL_TILE;
+        
+        #define LOCAL_TILE_PTR      LOCAL_TILE*
+        
+        void inline __attribute__((always_inline)) 
+        writeLocalW(LOCAL_TILE_PTR localW, long d, long r, long v)
+        {
+            //printf("local_WR(%ld,%ld) = %ld\n", d, r, v);
+            // max 8
+            switch ((r<<3)|(d+2))
+            {
+                case (0<<3)|(0+2):  localW->r0_d0 = v; break;
+                case (1<<3)|(-1+2): localW->r1_dm1 = v; break;
+                case (1<<3)|(0+2):  localW->r1_d0 = v; break;
+                case (1<<3)|(1+2):  localW->r1_d1 = v; break;
+                case (2<<3)|(-2+2): localW->r2_dm2 = v; break;
+                case (2<<3)|(-1+2): localW->r2_dm1 = v; break;
+                case (2<<3)|(0+2):  localW->r2_d0 = v; break;
+                case (2<<3)|(1+2):  localW->r2_d1 = v; break;
+                case (2<<3)|(2+2):  localW->r2_d2 = v; break;
+                case (3<<3)|(-2+2): localW->r3_dm2 = v; break;
+                case (3<<3)|(-1+2): localW->r3_dm1 = v; break;
+                case (3<<3)|(0+2):  localW->r3_d0 = v; break;
+                case (3<<3)|(1+2):  localW->r3_d1 = v; break;
+                case (3<<3)|(2+2):  localW->r3_d2 = v; break;
+                case (4<<3)|(-1+2): localW->r4_dm1 = v; break;
+                case (4<<3)|(0+2):  localW->r4_d0 = v; break;
+                case (4<<3)|(1+2):  localW->r4_d1 = v; break;
+                case (5<<3)|(0+2):  localW->r5_d0 = v; break;
+                default:
+                    printf("WRITE ERROR r:%d d:%d\n", r, d);
+
+            }
+            
+            //printf("localW.r0_d0 = %ld\n", localW->r0_d0 );
+
+        }
+        
+        long inline __attribute__((always_inline)) 
+        readLocalW(LOCAL_TILE_PTR localW, long d, long r)
+        {
+            long v; 
+            
+            // max 8
+            switch ((r<<3)|(d+2))
+            {
+                case (0<<3)|(0+2):  v = localW->r0_d0; break;
+                case (1<<3)|(-1+2): v = localW->r1_dm1; break;
+                case (1<<3)|(0+2):  v = localW->r1_d0; break;
+                case (1<<3)|(1+2):  v = localW->r1_d1; break;
+                case (2<<3)|(-2+2): v = localW->r2_dm2; break;
+                case (2<<3)|(-1+2): v = localW->r2_dm1; break;
+                case (2<<3)|(0+2):  v = localW->r2_d0; break;
+                case (2<<3)|(1+2):  v = localW->r2_d1; break;
+                case (2<<3)|(2+2):  v = localW->r2_d2; break;
+                case (3<<3)|(-2+2): v = localW->r3_dm2; break;
+                case (3<<3)|(-1+2): v = localW->r3_dm1; break;
+                case (3<<3)|(0+2):  v = localW->r3_d0; break;
+                case (3<<3)|(1+2):  v = localW->r3_d1; break;
+                case (3<<3)|(2+2):  v = localW->r3_d2; break;
+                case (4<<3)|(-1+2): v = localW->r4_dm1; break;
+                case (4<<3)|(0+2):  v = localW->r4_d0; break;
+                case (4<<3)|(1+2):  v = localW->r4_d1; break;
+                case (5<<3)|(0+2):  v = localW->r5_d0; break;
+                default:
+                    printf("READ ERROR r:%d d:%d\n", r, d);
+            }
+            
+
+            //printf("local_RD(%ld,%ld) = %ld\n", d, r, v);
+            return v;
+        }
+        
+    #endif
+    
+    
+#endif
+
+#ifdef SHARED_STORE
+    #define LOCAL_TILE_TYPE     __local
+    #define LOCAL_TILE_PTR      LOCAL_TILE_TYPE long*
+#endif
 
 /**
  * 
@@ -48,45 +271,34 @@
  * @param tileLen
  * @return 
  */
-int inline __attribute__((always_inline)) isInLocalBlock(int ld, int lr, int tileLen)
+int inline __attribute__((always_inline)) 
+isInLocalBlock(int ld, int lr)
 {
-    if (lr < 0)
-        return 0;
+    if (lr < 0) return 0;
+    if (lr >= 2*TILE_LEN) return 0;
     
-    // first check that there are in bounds
-    if (lr >= tileLen)
-    {
-        // decreasing tile 
-        int dec_lr = 2*tileLen - lr - 1;
-        
-        if (abs(ld) > dec_lr)
-            return 0;
-    }
-    else
-    {
-        if (abs(ld) > lr)
-            return 0;
-    }
+    int dec_lr = 2*TILE_LEN -1 - lr;
+    int min_lr = min(lr, dec_lr);
     
-    // return whether the cell is in the local memory 
-    int idx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
-    return ((idx >= 0) && (idx <= 2*tileLen*tileLen));
+    if (abs(ld) > min_lr) return 0;
+    
+    return 1;
 }
 
-int inline __attribute__((always_inline)) isInLocalBlockBoundary(int ld, int lr, int tileLen)
+// We assume we are already in a local block (tile)
+int inline __attribute__((always_inline)) 
+isInLocalBlockBoundary(int ld, int lr)
 {
-    int maxd = 2*tileLen-lr-1;
-    if (abs(ld) == maxd)
-        return 1;
-    if ((ld >= 0) && (abs(ld+1) == maxd))
-        return 1;
-    if ((ld <= 0) && (abs(ld-1) == maxd))
-        return 1;
+    int col = lr + abs(ld);
+    const int col1 = 2*TILE_LEN - 1;
+    const int col2 = col1-1;
     
-    return 0;
+    return ((col == col1) || (col == col2));
 }
 
-long inline __attribute__((always_inline)) extendUnaligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+
+long inline __attribute__((always_inline)) 
+extendUnaligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {
     long e = 0;
 
@@ -108,7 +320,8 @@ long inline __attribute__((always_inline)) extendUnaligned(__global const char* 
 
 #define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
 
-long inline __attribute__((always_inline)) extendAligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+long inline __attribute__((always_inline)) 
+extendAligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {
     int pbv; // P valid bytes
     int tbv; // T valid bytes
@@ -211,7 +424,8 @@ loop:
 
 
 
-long inline __attribute__((always_inline)) extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+long inline __attribute__((always_inline)) 
+extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
 {    
 #ifdef EXTEND_ALIGNED
         return extendAligned(P, T, m, n, pi, ti);
@@ -220,70 +434,138 @@ long inline __attribute__((always_inline)) extend(__global const char* P, __glob
 #endif
 }
 
-int inline __attribute__((always_inline)) polarExistsInW(long d, long r)
+int inline __attribute__((always_inline)) 
+polarExistsInW(long d, long r)
 {
-    long x = POLAR_W_TO_CARTESIAN_X(d,r);
-    long y = POLAR_W_TO_CARTESIAN_Y(d,r);
-	
-    return ((x >= 0) && (y >= 0));
+    int ret =  abs(d) <= r;
+    
+    //printf("polar exist in W (%ld, %ld) = %d\n", d, r, ret);
+    
+    return ret;
 }
 
 
-#define WRITE_W(d,r, v) writeToW(m_W, localW, (d), (r), (v), m_k, tileLen, ld, lr)
+
+#define WRITE_W(d,r, v)         writeToW(m_W, localW, (d), (r), (v), m_k, tileLen, ld, lr)
 #define READ_W(d,r, ld, lr)     (readFromW(m_W, localW, (d), (r), m_k, tileLen, ld, lr))
 
 
-void inline __attribute__((always_inline)) writeToW(__global long* m_W, LOCAL_STORE long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
-{    
-    int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+#ifdef REGISTER_STORE
+    
 
-    localW[lidx] = v;
+    void inline __attribute__((always_inline)) 
+    writeToW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+    {    
+        writeLocalW(localW, ld, lr, v);
+        //int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+        //localW[lidx] = v;
 
-    int inBoundary = isInLocalBlockBoundary(ld, lr, tileLen);
-    
-#ifdef DEBUG
-    printf("WR(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld (in boundary: %d)\n", 
-            d, r, tileLen, 
-            ld, lr, tileLen, lidx, v, inBoundary);
-#endif
-    
-    if (inBoundary)
-    {
-        m_W[POLAR_W_TO_INDEX(d, r)] = v;
-    }
-}
-
-long inline __attribute__((always_inline)) readFromW(__global long* m_W, LOCAL_STORE long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
-{
-    int isInLocal = isInLocalBlock(ld, lr, tileLen);
-    
-    if (isInLocal)
-    {
-        int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
-        long lv = localW[lidx];
-
-#ifdef DEBUG
-    
-        printf("RD(%ld, %ld, %d) -> local RD(%d, %d, %d) -> RD idx(%d) = %ld\n", 
-            d, r, tileLen, 
-            ld, lr, tileLen, lidx, lv);
-#endif
-    
-        return lv;
-    }
-    else
-    {
-        long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+        int inBoundary = isInLocalBlockBoundary(ld, lr);
         
-#ifdef DEBUG
-        printf("RD(%ld, %ld, %d) ->  = %ld\n", 
-            d, r, tileLen, gv);
-#endif    
-        return gv;
+    #ifdef DEBUG
+        printf("WR(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR  = %ld (in boundary: %d)\n", 
+                d, r, tileLen, 
+                ld, lr, tileLen, v, inBoundary);
+    #endif
+        
+        if (inBoundary)
+        {
+            m_W[POLAR_W_TO_INDEX(d, r)] = v;
+        }
     }
-}
+#else
+    void inline __attribute__((always_inline)) 
+    writeToW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+    {    
+        int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
 
-void inline __attribute__((always_inline)) processCell(__global char* P, 
+        localW[lidx] = v;
+
+        int inBoundary = isInLocalBlockBoundary(ld, lr);
+        
+    #ifdef DEBUG
+        printf("WR(%ld, %ld, %d) -> local WR(%d, %d, %d) -> WR idx(%d) = %ld (in boundary: %d)\n", 
+                d, r, tileLen, 
+                ld, lr, tileLen, lidx, v, inBoundary);
+    #endif
+        
+        if (inBoundary)
+        {
+            m_W[POLAR_W_TO_INDEX(d, r)] = v;
+        }
+    }
+#endif
+
+
+#ifdef REGISTER_STORE
+    
+    
+    long inline __attribute__((always_inline)) 
+    readFromW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+    {
+        int isInLocal = isInLocalBlock(ld, lr);
+        
+        if (isInLocal)
+        {
+            long lv = readLocalW(localW, ld, lr);
+            
+
+    #ifdef DEBUG
+        
+            printf("RD(%ld, %ld, %d) -> local RD(%d, %d, %d) -> RD idx(%d) = %ld\n", 
+                d, r, tileLen, 
+                ld, lr, tileLen, lidx, lv);
+    #endif
+        
+            return lv;
+        }
+        else
+        {
+            long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+            
+    #ifdef DEBUG
+            printf("RD(%ld, %ld, %d) ->  = %ld\n", 
+                d, r, tileLen, gv);
+    #endif    
+            return gv;
+        }
+    }
+#else
+    long inline __attribute__((always_inline)) 
+    readFromW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+    {
+        int isInLocal = isInLocalBlock(ld, lr);
+        
+        if (isInLocal)
+        {
+            int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+            long lv = localW[lidx];
+
+    #ifdef DEBUG
+        
+            printf("RD(%ld, %ld, %d) -> local RD(%d, %d, %d) -> RD idx(%d) = %ld\n", 
+                d, r, tileLen, 
+                ld, lr, tileLen, lidx, lv);
+    #endif
+        
+            return lv;
+        }
+        else
+        {
+            long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+            
+    #ifdef DEBUG
+            printf("RD(%ld, %ld, %d) ->  = %ld\n", 
+                d, r, tileLen, gv);
+    #endif    
+            return gv;
+        }
+    }
+#endif
+
+
+void inline __attribute__((always_inline)) 
+processCell(__global char* P, 
         __global char* T, 
         long m_m, 
         long m_n,
@@ -293,13 +575,24 @@ void inline __attribute__((always_inline)) processCell(__global char* P,
         long d,
         long r,
         int tileLen,
-        LOCAL_STORE long* localW,
+        LOCAL_TILE_PTR localW,
         int ld,
         int lr,
         int* doRun)
 {
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    // we already reached the final point in previous invocations
     long m_top = max2(m_m,m_n);
+
+    // printf("%ld  >= %ld ? \n", p_final_d_r[0], m_top);
+
+    if (p_final_d_r[0] >= m_top)
+    {
+        //printf("%ld is >= TOP", p_final_d_r[0]);
+        *doRun = 0;
+        return;
+    }
+
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
 
     // early exit for useless work items
     if (!polarExistsInW(d,r))
@@ -308,8 +601,20 @@ void inline __attribute__((always_inline)) processCell(__global char* P,
     if (r == 0)
     {
         if (d == 0)
+        {
             // initial case
-            WRITE_W(d, r, extend(P, T, m_m, m_n, 0, 0));
+            long extended = extend(P, T, m_m, m_n, 0, 0);
+            WRITE_W(d, r, extended);
+            
+            if ((d == final_d) && extended >= m_top)
+            {
+                //printf("COMPLETE\n");
+                p_final_d_r[0] = extended;  // furthest reaching point
+                p_final_d_r[1] = r;         // at edit distance = r
+                *doRun = 0;
+                return;
+            }
+        }
         else
             WRITE_W(d, r, 0);
     }
@@ -319,6 +624,8 @@ void inline __attribute__((always_inline)) processCell(__global char* P,
         long left = (polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;
         long diag_down = (polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;
 
+        //printf("u|l|r = %ld|%ld|%ld\n",  diag_up, left, diag_down);
+
         long compute;
 
         if (d == 0)
@@ -327,10 +634,12 @@ void inline __attribute__((always_inline)) processCell(__global char* P,
             compute = max3(diag_up, left+1, diag_down+1);
         else
             compute = max3(diag_up+1, left+1, diag_down);
+            
+        //printf("compute: %ld, u|l|r = %ld|%ld|%ld\n", compute, diag_up, left, diag_down);
 
         if ((d == final_d) && compute >= m_top)
         {
-//            printf("COMPLETE\n");
+            //printf("COMPLETE\n");
             WRITE_W(d, r, compute);
             p_final_d_r[0] = compute;   // furthest reaching point
             p_final_d_r[1] = r;         // at edit distance = r
@@ -350,7 +659,7 @@ void inline __attribute__((always_inline)) processCell(__global char* P,
 
             if ((d == final_d) && extended >= m_top)
             {
-//                printf("COMPLETE\n");
+                //printf("COMPLETE\n");
                 p_final_d_r[0] = extended;  // furthest reaching point
                 p_final_d_r[1] = r;         // at edit distance = r
                 *doRun = 0;
@@ -395,12 +704,27 @@ __kernel void wfo2cols(
         __global long* p_final_d_r,
         int tileLen)
 {
-    LOCAL_STORE long localW[2*TILE_LEN*TILE_LEN];
+#ifdef GLOBAL_STORE
+    LOCAL_TILE_TYPE long localW[2*TILE_LEN*TILE_LEN];    
+    #define GET_LOCAL_TILE_REF
+#endif
+
+#ifdef REGISTER_STORE
+    LOCAL_TILE localW;
+    #define GET_LOCAL_TILE_REF &
+#endif
+    
+#ifdef SHARED_STORE
+    LOCAL_TILE_TYPE long shared_localW[WORKGROUP_SIZE][2*TILE_LEN*TILE_LEN];
+    size_t lid = get_local_id(0);
+    LOCAL_TILE_TYPE long* localW = &shared_localW[lid][0];
+    #define GET_LOCAL_TILE_REF
+#endif
 
     size_t gid = get_global_id(0);
 
     //long d = gid - (r-1);
-    long d0 = r0 - gid*2*tileLen; 
+    long d0 = r0 - gid*2*TILE_LEN; 
     long m_top = max2(m_m,m_n);
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     int doRun = 1;
@@ -423,7 +747,7 @@ __kernel void wfo2cols(
     // Increase
     for (int i=0 ; ((i < tileLen) && (doRun)); i++)
         for (int j=-i; ((j <= i) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, localW, j, i, &doRun);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, GET_LOCAL_TILE_REF localW, j, i, &doRun);
     
     // Decrease
     for (int i=0 ; ((i < tileLen) && (doRun)); i++)
@@ -431,6 +755,6 @@ __kernel void wfo2cols(
         int ii = tileLen - 1 -i;
         
         for (int j=-ii; ((j <= ii) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, localW, j, tileLen+i, &doRun);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, GET_LOCAL_TILE_REF localW, j, tileLen+i, &doRun);
     }
 }
