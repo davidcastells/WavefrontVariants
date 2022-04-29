@@ -48,13 +48,20 @@ public:
     void releaseContext(cl_context context);
     OCLQueue* createQueue();
     cl_program createProgramFromSource(const char* sourceFile, std::string& options);
+    cl_program createProgramFromBinary(const char * binaryFile ) ;
     cl_kernel createKernel(const char* name);
-    int fileExists(const char *file_name); 
-    std::string loadSourceFile(const char* filename);
-    int contains(std::string& str, const char* q);
-
     
+    // File Utils
+    int fileExists(const char *file_name); 
+    static std::string getDir(const char* file_name);
+    std::string loadSourceFile(const char* filename);
+    unsigned char* loadBinaryFile(const char* filename, size_t *size) ;
+    void setKernelDir(std::string& file);
+    
+    // String Utils
+    static int contains(std::string& str, const char* q);
     static std::string errorToStr(cl_int err);
+    
 private:
     cl_platform_id m_platformId;
     cl_device_id m_deviceId;
@@ -64,6 +71,8 @@ private:
     
     
     std::string m_selectedPlatformName;
+    
+    std::string m_kernelDir;
 };
 
 class OCLQueue
@@ -72,7 +81,7 @@ public:
     OCLQueue(cl_command_queue queue);
     virtual ~OCLQueue();
     
-    void invokeKernel1D(cl_kernel kernel, size_t workitems);
+    void invokeKernel1D(cl_kernel kernel, size_t workitems,size_t workgroupsize);
     void writeBuffer(cl_mem buf, void* src, size_t size );
     void readBuffer(cl_mem buf, void* dst, size_t size);
     void finish();
