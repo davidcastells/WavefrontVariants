@@ -482,7 +482,7 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string
     if (contains(m_selectedPlatformName, "Portable Computing Language"))
         options += "-g "; // -cl-opt-disable"; 
     else if (contains(m_selectedPlatformName, "NVIDIA"))
-        options += "-cl-nv-verbose"; 
+        options += " -cl-nv-verbose "; 
     
     PerformanceLap lap;
     err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
@@ -621,7 +621,7 @@ void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems, size_t workgro
     {
         size_t new_workitems = ((workitems + (workgroupsize-1)) / workgroupsize) * workgroupsize;
                 
-        if (verbose > 1)
+        if (verbose > 2)
             printf("Rounding workitems from %ld to %ld\n", workitems, new_workitems);
         
         workitems = new_workitems;
