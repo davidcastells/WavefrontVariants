@@ -11,6 +11,8 @@
 
 #define POLAR_W_TO_INDEX(d, r)                  ((d)+m_k + (((r)%2) * (2*m_k+1)))
 
+#define POLAR_LAST_R_TO_INDEX(d)                ((d)+m_k + (2 * (2*m_k+1)))
+
 #define POLAR_W_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? -(d) : 0 ) + (r))
 #define POLAR_W_TO_CARTESIAN_X(d,r)		((((d) >= 0)? 0 : (d)) + (r))
 
@@ -46,46 +48,112 @@ int polarExistsInW(long d, long r)
     return ((x >= 0) && (y >= 0));
 }
 
+#define WRITE_W(d,r,v)      m_W[POLAR_W_TO_INDEX((d), (r))] = (v)
+#define READ_W(d, r)        m_W[POLAR_W_TO_INDEX((d), (r))] 
 
-/**
- * This is the initial kernel version.
- * The host will create as many work items as the height of the column W
- * most of them will die soon with nothing useful to do
- */
-__kernel void wfo2cols(
-        __global char* P, 
-        __global char* T, 
-        long m_m, 
-        long m_n, 
-        long r, 
-        long m_k,  
-        __global long* m_W,
-        __global long* p_final_d_r)
+//#define WRITE_LAST_R(d,v)   ((volatile long*) m_W)[POLAR_LAST_R_TO_INDEX(d)] = (v)
+//#define READ_LAST_R(d)      ((volatile long*) m_W)[POLAR_LAST_R_TO_INDEX(d)]
+
+
+
+int processCell(__global char* P,  __global char* T, long m_m, long m_n, 
+    __global long* m_W, 
+    __local long* localW, 
+    __global long* p_final_d_r,
+     long d, long r, long final_d, long m_k, long m_top)
 {
     size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
     
-    //long d = gid - (r-1);
-    long d = m_k - gid; 
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n);
-            
+    //printf("t%ld - r0:%ld executing r:%ld d:%ld\n", (long) gid, r0, r, d);
+    //printf("d:%ld last r: %ld < %ld\n", d, READ_LAST_R(d), (r-1) );
+
+    
     // early exit for useless work items
     if (!polarExistsInW(d,r))
-        return;
-            
+    {
+        //printf("skip r:%ld d:%ld\n", r, d);
+        return 0;
+    }
+       
     if (r == 0)
     {
         if (d == 0)
+        {
             // initial case
-            m_W[POLAR_W_TO_INDEX(d, r)] = extend(P, T, m_m, m_n, 0, 0);
+            long extended = extend(P, T, m_m, m_n, 0, 0);
+            WRITE_W(d, r, extended);
+            //WRITE_LAST_R(d, r);
+            
+            //printf("W(%ld, %ld) = %ld\n", d, r, extended);
+            
+            if ((d == final_d) && extended >= m_top)
+            {
+                printf("COMPLETE: distance %ld t%ld\n", r, gid);
+                printf("W(%ld, %ld) = %ld\n", d, r, extended);
+                p_final_d_r[0] = extended;  // furthest reaching point
+                p_final_d_r[1] = r;         // at edit distance = r
+                return 1;
+            }
+        }
         else
-            m_W[POLAR_W_TO_INDEX(d, r)]  = 0;
+        {
+            //printf("W(%ld, %ld) = %ld\n", d, r, 0);
+            WRITE_W(d, r, 0);
+            //WRITE_LAST_R(d, r);
+        }  
     }
     else
     {
-        long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-        long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-        long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+        /*
+        long ldm1 = READ_LAST_R(d-1);
+        long ld = READ_LAST_R(d);
+        long ldp1 = READ_LAST_R(d+1);
+        
+        // last computed row must reach r-1 before continuing
+        while ((ldm1 <(r-1)) || (ld <(r-1)) || (ldp1 <(r-1)))
+        {
+            if (ldm1 <(r-1))
+            {
+                //printf("#,t,%ld,%ld,d,%ld, Diagonal d:%ld reached r: %ld instead of  %ld -> Compute (%ld, %ld)\n", gid, r, d, d-1, ldm1, (r-1), d-1, r-1 );
+                
+                //processCellNoRecursive(P, T, m_m, m_n, m_W, p_final_d_r, d-1, r-1, final_d, m_k, m_top);
+            }
+            
+            if (ld <(r-1))
+            {
+                //printf("#,t,%ld,%ld,d,%ld, Diagonal d:%ld reached r: %ld instead of  %ld -> Compute (%ld, %ld)\n", gid, r, d, d, ld, (r-1), d, r-1 );
+                //processCellNoRecursive(P, T, m_m, m_n, m_W, p_final_d_r, d, r-1, final_d, m_k, m_top);
+            }
+            
+            if (ldp1 <(r-1))
+            {
+                //printf("#,t,%ld,%ld,d,%ld, Diagonal d:%ld reached r: %ld instead of  %ld -> Compute (%ld, %ld)\n", gid, r, d, d+1, ldp1, (r-1), d+1, r-1 );
+                //processCellNoRecursive(P, T, m_m, m_n, m_W, p_final_d_r, d+1, r-1, final_d, m_k, m_top);
+            }
+            
+            while ((ldm1 <(r-1)) || (ld <(r-1)) || (ldp1 <(r-1)))
+            {
+                ldm1 = READ_LAST_R(d-1);
+                ld = READ_LAST_R(d);
+                ldp1 = READ_LAST_R(d+1);
+            
+            
+            // return;
+//                    printf(".");
+            // stop if we already finished
+                if (p_final_d_r[0] >= m_top)
+                {
+                    //printf("Completed in another thread: %ld >= %ld\n", p_final_d_r[0] , m_top);
+                    return 1;
+                }
+            }
+        }*/
+
+        
+        long diag_up = (polarExistsInW(d+1, r-1))? ((lid < 96)? localW[lid+1] : READ_W(d+1, r-1)) : 0;
+        long left = (polarExistsInW(d,r-1))? localW[lid] /*READ_W(d, r-1)*/ : 0;
+        long diag_down = (polarExistsInW(d-1,r-1))? ((lid > 0)? localW[lid-1] : READ_W(d-1, r-1)) : 0;
 
         long compute;
 
@@ -98,9 +166,13 @@ __kernel void wfo2cols(
 
         if ((d == final_d) && compute >= m_top)
         {
-            m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-            *p_final_d_r = compute;
-            return;
+            printf("COMPLETE: distance %ld t%ld\n", r, gid);
+            printf("W(%ld, %ld) = %ld\n", d, r, compute);
+            WRITE_W(d, r, compute);
+            //WRITE_LAST_R(d, r);
+            p_final_d_r[0] = compute;
+            p_final_d_r[1] = r;
+            return 1;
             // ret = r;
             // goto end_loop;
         }
@@ -113,12 +185,17 @@ __kernel void wfo2cols(
             long extendv = extend(P, T, m_m, m_n, ey, ex);
             long extended = compute + extendv;
 
-            m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+            //printf("W(%ld, %ld) = %ld\n", d, r, extended);
+            WRITE_W(d, r, extended);
+            //WRITE_LAST_R(d, r);
 
             if ((d == final_d) && extended >= m_top)
             {
-                *p_final_d_r = extended;
-                return;
+                printf("COMPLETE: distance %ld t%ld\n", r, gid);
+                printf("W(%ld, %ld) = %ld\n", d, r, extended);
+                p_final_d_r[0] = extended;
+                p_final_d_r[1] = r;
+                return 1;
                 // printf("Finishing d=%d r=%d\n", d, r);
                 //ret = r;
                 // goto end_loop;
@@ -126,8 +203,67 @@ __kernel void wfo2cols(
         }
         else
         {
-            m_W[POLAR_W_TO_INDEX(d, r)] = compute;
+            //printf("W(%ld, %ld) = %ld\n", d, r, compute);
+            WRITE_W(d, r, compute);
+            //WRITE_LAST_R(d, r);
         }
     }
+    
+    return 0;
+}
 
+/**
+ * This is the initial kernel version.
+ * The host will create as many work items as the height of the column W
+ * most of them will die soon with nothing useful to do
+ */
+__kernel void wfo2cols(
+        __global char* P, 
+        __global char* T, 
+        long m_m, 
+        long m_n, 
+        long r0, 
+        long m_k,  
+        __global long* m_W,
+        __global long* p_final_d_r,
+        long rf,
+        int stride)
+{
+    size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
+    
+    // we launch 96000 threads using workgroups of 96, if we copy the W value in local memory, the threads of the workgroup can
+    // access that value instead of going to local memory. 
+    __local long localW[96];  
+    
+    //printf("t%ld - kernel r0:%ld rf:%ld stride: %d\n", gid, r0, rf, stride);
+    
+//    long d = gid - r0; 
+    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    long m_top = max2(m_m,m_n);
+
+    for (long r=r0; r < rf; r++)
+    {
+        //printf("t%ld - r:%ld/%ld\n", (long) gid, r, rf);
+                
+        long roundedr = ((r + stride - 1 ) / stride) * stride;
+                
+        for (long d=gid-roundedr; d <= r; d += stride)
+        {
+            // printf("#,t,%ld,%ld,d,%ld\n", gid, r, d);
+            
+            if (r > 0)
+                localW[lid] = READ_W(d ,r-1);
+        
+            barrier(CLK_LOCAL_MEM_FENCE);
+            
+            if (processCell(P, T, m_m, m_n,  m_W, localW, p_final_d_r, d, r, final_d, m_k, m_top))
+                return;
+                
+            barrier(CLK_LOCAL_MEM_FENCE);
+        }
+        
+        
+    }
+    
 }
