@@ -29,7 +29,7 @@ public:
     const char* getDescription(); 
 
     void setCommonArgs();
-    void invokeKernel(long r);
+    void invokeKernel(long r, long rf, int workitems);
     void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
     
 	
@@ -40,7 +40,7 @@ public:
     long m_m;
     long m_k;
     long m_top;
-    long m_final_d_r;
+    long m_final_d_r[2];
     
     cl_context m_context;
     OCLQueue* m_queue;
