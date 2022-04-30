@@ -45,6 +45,9 @@ extern int verbose;
 extern int gPid;
 extern int gMeasureIterationTime;
 extern int gWorkgroupSize;
+extern int gEnqueuedInvocations;
+extern int gWorkitems;
+extern double gPrintPeriod;
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -84,12 +87,14 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_n = strlen(T);
     m_k = k;
 
-    long size = 2*(2*k+1);
-
+    long size = 3*(2*k+1);
 
     try
     {
         m_W = new long[size];
+        
+        for (long i=0; i < size; i++)
+            m_W[i] = k;
     }
     catch (const std::bad_alloc& e) 
     {
@@ -114,7 +119,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(long), NULL, &err);
     CHECK_CL_ERRORS(err);
     
-    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, sizeof(long), NULL, &err);
+    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2*sizeof(long), NULL, &err);
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
@@ -125,26 +130,37 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     printf("input set\n");
 }
 
+
 void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
+    static double lastPrintLap = 0;
+    
+    double printPeriod = (gPrintPeriod > 0)? gPrintPeriod : 0.5;
+    
 #define DECIMALS_PERCENT    1000
     if (!verbose)
         return;
     
     double elapsed = lap.stop();
-    double estimated = (elapsed / r) * (m_k);
-    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
+    // linear model
+//    double estimated = (elapsed / r) * (m_k);
+//    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
+    // square model
+    double estimated = (elapsed / (r*r)) * (m_k*m_k);
+    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
     
-    
-    //if (percent != lastpercent)
+    if (elapsed > (lastPrintLap + printPeriod))
     {
+        printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+        printf("r %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT),  (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
+        lastPrintLap = elapsed;
     }
 }
+
 
 long OCLGPUWavefrontOriginal2Cols::getDistance()
 {
@@ -156,6 +172,10 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     m_queue->writeBuffer(m_buf_P, (void*) m_P, m_m);
     m_queue->writeBuffer(m_buf_T, (void*) m_T, m_n);
     
+    long sizeW = 3*(2*m_k+1) * sizeof(long);
+    
+    m_queue->writeBuffer(m_buf_W, (void*) m_W, sizeW);
+    
     long h = 2*m_k+1;
     
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
@@ -166,9 +186,9 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     if (gMeasureIterationTime)
         printf("r,time\n");
         
-    for (long r=0; r < m_k; r++)
+    for (long r=0; r < m_k; r+= gEnqueuedInvocations)
     {
-        invokeKernel(r);
+        invokeKernel(r, r+gEnqueuedInvocations, gWorkitems);
 
         if (gMeasureIterationTime)
         {
@@ -181,8 +201,8 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         else
             progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
         
-        if (m_final_d_r >= m_top)
-            return r;
+        if (m_final_d_r[0] >= m_top)
+            return m_final_d_r[1];
         // printf("final d = %ld\n", m_W[POLAR_W_TO_INDEX(final_d, i)]);
     }
     
@@ -221,18 +241,24 @@ void OCLGPUWavefrontOriginal2Cols::setCommonArgs()
     CHECK_CL_ERRORS(ret);
 }
 
-void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
+void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r0, long rf, int workitems)
 {
     cl_int ret;
     
-    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
+    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r0);
+    CHECK_CL_ERRORS(ret);
+    
+    ret = clSetKernelArg(m_kernel, 8, sizeof(cl_long), (void*)& rf);
+    CHECK_CL_ERRORS(ret);
+    
+    ret = clSetKernelArg(m_kernel, 9, sizeof(cl_int), (void*)& workitems);
     CHECK_CL_ERRORS(ret);
 
     long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*k+1, gWorkgroupSize);
+    m_queue->invokeKernel1D(m_kernel, workitems, gWorkgroupSize);
     
-    m_queue->readBuffer(m_buf_final_d_r, &m_final_d_r, sizeof(long));
+    m_queue->readBuffer(m_buf_final_d_r, &m_final_d_r, 2*sizeof(long));
 
 }
 
