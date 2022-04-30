@@ -89,6 +89,7 @@ char* gfT = NULL;
 int gPid = 0;
 int gDid = 0;           // OpenCL device ID
 int gWorkgroupSize = 8; // Workgroup size
+int gWorkitems = 1;
 
 double gPrintPeriod = -1;
 
@@ -155,7 +156,12 @@ void parseArgs(int argc, char* args[])
         {
             gTileLen = atoi(args[++i]);
         }
+        if ((strcmp(args[i], "-wis") == 0) || (strcmp(args[i], "--workitems") == 0))
+        {
+            gWorkitems = atoi(args[++i]);
+        }
 
+ 
         if (strcmp(args[i], "-P") == 0)
             gP = args[++i];
         if (strcmp(args[i], "-T") == 0)
@@ -300,6 +306,8 @@ void usage()
     printf("    %s-qi,--enqueued-invocations%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Number of enqueued kernel invocations before checking status.\n");
     printf("    %s-tl,--tile-length%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Tile length.\n");
+    printf("    %s-wis,--workitems%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Tile length.\n");
     printf("    %s--local-tile-memory%s %sSTRING%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Specify the type of memory used in local tiles [register|shared].\n");
