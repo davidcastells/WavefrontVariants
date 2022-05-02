@@ -43,7 +43,14 @@
 
 extern int verbose;
 extern int gPid;
-extern int gMeasureIterationTime;
+extern int gDid;
+extern int gTileLen;
+extern int gWorkgroupSize;
+extern int gExtendAligned;
+extern int gEnqueuedInvocations;
+extern double gPrintPeriod;
+extern char* gLocalTileMemory;
+
 
 OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
 {
@@ -82,7 +89,17 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
+    m_tileLen = gTileLen;
 
+    if (strcmp(gLocalTileMemory, "shared") == 0)
+    {
+        m_localStore = "SHARED_STORE";
+    }
+    else
+    {
+        m_localStore = "GLOBAL_STORE";
+    }
+    
     long size = 2*(2*k+1);
 
 
@@ -117,32 +134,59 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
-    ocl->createProgramFromSource("WFO2ColsGPU.cl");
+        
+    std::string options ="";
+    options += " -D TILE_LEN=" + std::to_string(m_tileLen);
+    options += " -D " + m_localStore;
+    options += " -D WORKGROUP_SIZE=" + std::to_string(gWorkgroupSize);
+    options += " -D COLUMN_HEIGHT=" + std::to_string(2*k+1);
+    options += " -D ROW_ZERO_OFFSET=" + std::to_string(k);
+    options += " ";
+
+    std::string plName = ocl->getSelectedPlatformName();
+    if (OCLUtils::contains(plName, "Portable Computing Language") && (verbose > 1))
+        options += " -D DEBUG ";
+    
+    if (gExtendAligned)
+        options += " -D EXTEND_ALIGNED ";
+    
+    ocl->createProgramFromSource("WFO2ColsGPU.cl", options);
     m_kernel = ocl->createKernel("wfo2cols");
     
     printf("input set\n");
 }
 
+
 void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
+    static double lastPrintLap = 0;
+    
+    double printPeriod = (gPrintPeriod > 0)? gPrintPeriod : 0.5;
+    
 #define DECIMALS_PERCENT    1000
     if (!verbose)
         return;
     
     double elapsed = lap.stop();
-    double estimated = (elapsed / r) * (m_k);
-    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
+    // linear model
+//    double estimated = (elapsed / r) * (m_k);
+//    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
+    // square model
+    double estimated = (elapsed / (r*r)) * (m_k*m_k);
+    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
     
-    
-    //if (percent != lastpercent)
+    if (elapsed > (lastPrintLap + printPeriod))
     {
+        printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+        printf("r %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT),  (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
+        lastPrintLap = elapsed;
     }
 }
+
 
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
 
@@ -237,7 +281,7 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
 
     // long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*r+1);
+    m_queue->invokeKernel1D(m_kernel, 2*r+1, gWorkgroupSize);
 }
 
 char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(long* distance)
