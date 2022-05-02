@@ -80,8 +80,8 @@ def getObjects():
 \tWavefrontDynamicDiamond2Cols.o fasta.o PerformanceLap.o """
 
     if (bHasOpenCL):
-        # OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o 
-        objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o  OCLUtils.o "
+        # OCLFPGAWavefrontOriginal2Cols.o 
+        objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o  OCLUtils.o "
 
     if (bHasCUDA):
         objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
