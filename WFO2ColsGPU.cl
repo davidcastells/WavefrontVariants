@@ -1,21 +1,18 @@
 
 #define CARTESIAN_TO_INDEX(y, x, w)		((y)*(w) + (x))
-//#define POLAR_D_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_D_TO_CARTESIAN_Y((d), (r)),POLAR_D_TO_CARTESIAN_X((d), (r)),w)
 #define POLAR_D_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? 0: -(d)) + (r))
 #define POLAR_D_TO_CARTESIAN_X(d,r)		((((d) >= 0)? (d): 0) + (r))
 
-#define CARTESIAN_TO_POLAR_D_D(y, x)		((x)-(y))
-#define CARTESIAN_TO_POLAR_D_R(y, x)		(((y)>(x))? (x) : (y))
+#define CARTESIAN_TO_POLAR_D_D(y, x)	((x)-(y))
+#define CARTESIAN_TO_POLAR_D_R(y, x)	(((y)>(x))? (x) : (y))
 
-//#define POLAR_W_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_W_TO_CARTESIAN_Y((d), (r)),POLAR_W_TO_CARTESIAN_X((d), (r)),w)
-
-#define POLAR_W_TO_INDEX(d, r)                  ((d)+m_k + (((r)%2) * (2*m_k+1)))
+#define POLAR_W_TO_INDEX(d, r)          ((d)+ROW_ZERO_OFFSET + (((r)%2) * COLUMN_HEIGHT))
 
 #define POLAR_W_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? -(d) : 0 ) + (r))
 #define POLAR_W_TO_CARTESIAN_X(d,r)		((((d) >= 0)? 0 : (d)) + (r))
 
-#define CARTESIAN_TO_POLAR_W_D(y, x)		((x)-(y))
-#define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
+#define CARTESIAN_TO_POLAR_W_D(y, x)    ((x)-(y))
+#define CARTESIAN_TO_POLAR_W_R(y, x)	(((y)>(x))? (y) : (x))
 
 
 #define max2(a,b) (((a)>(b))?(a):(b))
@@ -27,11 +24,11 @@ long extend(__global const char* P, __global const char* T, long m, long n, long
 
     while (pi < m && ti < n)
     {
-            if (P[pi] != T[ti])
-                    return e;
-            e++;
-            pi++;
-            ti++;
+        if (P[pi] != T[ti])
+            return e;
+        e++;
+        pi++;
+        ti++;
     }
 
     return e;
@@ -40,10 +37,7 @@ long extend(__global const char* P, __global const char* T, long m, long n, long
 
 int polarExistsInW(long d, long r)
 {
-    long x = POLAR_W_TO_CARTESIAN_X(d,r);
-    long y = POLAR_W_TO_CARTESIAN_Y(d,r);
-	
-    return ((x >= 0) && (y >= 0));
+    return abs(d) <= r;
 }
 
 
@@ -72,12 +66,43 @@ __kernel void wfo2cols(
         __global long* p_final_d_r)
 {
     size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
+    
+#ifdef SHARED_STORE
+    __local long localW[WORKGROUP_SIZE];
+#endif
     
     //long d = gid - (r-1);
     long d = r - gid; 
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
     
+    long diag_up;
+    long left;
+    long diag_down; 
+        
+#ifdef SHARED_STORE
+    if (r > 0)
+    {
+        left = m_W[POLAR_W_TO_INDEX(d, r-1)];
+        localW[lid] = left;
+        // printf("lid=%ld d=%ld r=%ld\n ", lid, d, r);
+    }       
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    diag_up = localW[(lid-1) % WORKGROUP_SIZE];
+    diag_down = localW[(lid+1) % WORKGROUP_SIZE];
+    
+#else
+        
+    if (r > 0)
+    {
+        diag_up = m_W[POLAR_W_TO_INDEX(d+1, r-1)]  ; 
+        left = m_W[POLAR_W_TO_INDEX(d, r-1)] ;
+        diag_down = m_W[POLAR_W_TO_INDEX(d-1, r-1)]  ; 
+    }
+#endif
+
     // we already reached the final point in previous invocations
     if (p_final_d_r[0] >= m_top)
         return;
@@ -85,29 +110,48 @@ __kernel void wfo2cols(
     // early exit for useless work items
     if (!polarExistsInW(d,r))
         return;
-            
+    
     if (r == 0)
     {
         if (d == 0)
+        {
+            long extended = extend(P, T, m_m, m_n, 0, 0); 
             // initial case
-            m_W[POLAR_W_TO_INDEX(d, r)] = extend(P, T, m_m, m_n, 0, 0);
+            m_W[POLAR_W_TO_INDEX(d, r)] = extended; 
+            if ((d == final_d) && extended >= m_top)
+            {
+                m_W[POLAR_W_TO_INDEX(d, r)] = extended;
+                p_final_d_r[0] = extended;   // furthest reaching point
+                p_final_d_r[1] = r;         // at edit distance = r
+                return;
+            }
+        }
         else
             m_W[POLAR_W_TO_INDEX(d, r)]  = 0;
+            
+        
     }
     else
     {
-        long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-        long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-        long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
-
+#ifdef SHARED_STORE
+        diag_up = (polarExistsInW(d+1, r-1))?  ((lid > 0)? diag_up : m_W[POLAR_W_TO_INDEX(d+1, r-1)])  : 0; 
+        left = (polarExistsInW(d,r-1))? left  : 0;
+        diag_down = (polarExistsInW(d-1,r-1))? ((lid < (WORKGROUP_SIZE-1)) ? diag_down : m_W[POLAR_W_TO_INDEX(d-1, r-1)])  : 0; 
+#else
+        diag_up = (polarExistsInW(d+1, r-1))?  diag_up  : 0; 
+        left = (polarExistsInW(d,r-1))? left : 0;
+        diag_down = (polarExistsInW(d-1,r-1))?  diag_down  : 0; 
+#endif
         long compute;
 
         if (d == 0)
-            compute = max3(diag_up, left+1, diag_down);
+            compute = max(diag_up, diag_down);
         else if (d > 0)
-            compute = max3(diag_up, left+1, diag_down+1);
+            compute = max(diag_up, diag_down+1);
         else
-            compute = max3(diag_up+1, left+1, diag_down);
+            compute = max(diag_up+1, diag_down);
+            
+        compute = max(left+1, compute);
 
         if ((d == final_d) && compute >= m_top)
         {
