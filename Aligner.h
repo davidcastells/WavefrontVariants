@@ -51,6 +51,12 @@ public:
     			printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
 		}
 	}
+	
+protected:        
+    const char* m_P;
+    const char* m_T;
+    long m_n;
+    long m_m;
 };
 
 #endif
