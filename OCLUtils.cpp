@@ -89,6 +89,7 @@ void OCLUtils::selectPlatform(cl_uint selected_platform_index)
             {
                     printf(" [Selected]");
                     selected_platform_index = i;
+                    m_selectedPlatformName = platform_name;
                     // do not stop here, just want to see all available platforms
             }
 
@@ -323,10 +324,26 @@ int OCLUtils::fileExists(const char *file_name)
 #endif
 }
 
+
+std::string OCLUtils::getDir(const char* file_name)
+{
+    std::string str(file_name);
+    std::size_t found = str.find_last_of("/");
+    return str.substr(0,found);
+}
+
+void OCLUtils::setKernelDir(std::string& str)
+{
+    m_kernelDir = str + std::string("/");
+}
+
+
 std::string OCLUtils::loadSourceFile(const char* filename)
 {
+    std::string file = m_kernelDir + std::string(filename);
+    
     // Read program file and place content into buffer 
-    FILE* fp = fopen(filename, "r");
+    FILE* fp = fopen(file.c_str(), "r");
 
     if (fp == NULL) 
         throw std::runtime_error(std::string("File not found") + std::string(filename));
@@ -350,7 +367,87 @@ std::string OCLUtils::loadSourceFile(const char* filename)
     return ret;
 }
 
-cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
+
+unsigned char* OCLUtils::loadBinaryFile(const char* filename, size_t *size) 
+{
+    std::string file = m_kernelDir + std::string(filename);
+
+    // Open the File
+  FILE* fp;
+  fp = fopen(file.c_str(), "rb");
+  
+  if(fp == 0)
+      throw std::runtime_error(std::string("File not found ") + std::string(filename));
+
+  // Get the size of the file
+  fseek(fp, 0, SEEK_END);
+  *size = ftell(fp);
+
+  // Allocate space for the binary
+  unsigned char *binary = new unsigned char[*size];
+
+  printf("Binary File Size: %d\n", (int) *size);
+  
+  // Go back to the file start
+  //fseek(fp, 0, SEEK_SET);
+  rewind(fp);
+
+  int total = *size;
+  int offset = 0;
+  int nread = 0;
+  
+  if (fread((void*)binary, 1, *size, fp) < *size)
+    {
+        delete[] binary;
+        fclose(fp);
+        throw std::runtime_error(std::string("### ERROR ### could not load binary"));
+    }
+  
+      printf("Binary Read: [OK]\n");
+
+  return binary;
+}
+
+
+cl_program OCLUtils::createProgramFromBinary(const char * binaryFile ) 
+{
+    const cl_device_id devices[]={ m_deviceId };
+    unsigned num_devices = 1;
+
+    printf("Loading %s...\n", binaryFile);
+    // printf("For %d devices...\n", num_devices);
+    
+  // Load the binary.
+  size_t binary_size;
+  unsigned char* binary = loadBinaryFile(binaryFile, &binary_size);
+  
+
+  size_t binary_lengths[] = { binary_size};
+  const unsigned char* binaries[] = {binary};
+  
+//  for (int i = 0; i < num_devices; i++) 
+//  {
+//    binary_lengths[i] = binary_size;
+//    binaries[i] = binary;
+//  }
+
+  cl_int status;
+  cl_int binary_status[num_devices];
+
+  cl_program program = clCreateProgramWithBinary(m_context, num_devices, devices, binary_lengths,
+      binaries, binary_status, &status);
+
+  CHECK_CL_ERRORS(status);
+
+    m_program = program;
+  
+  printf("create program finished\n");
+  fflush(stdout);
+  
+  return program;
+}
+
+cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string& options)
 {
     printf("Loading %s\n", sourceFile);
     cl_program program;
@@ -361,8 +458,8 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     {
         printf("SOURCE:\n");
         printf("-------------------------------\n");
-        printf(source.c_str());
-        printf("\n-------------------------------\n");
+        printf("%s\n", source.c_str());
+        printf("-------------------------------\n");
         printf("\n");
     }
     const char* sources[] = {source.c_str()};
@@ -373,12 +470,16 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     CHECK_CL_ERRORS(err);
     
     cl_device_id device_ids[] = {m_deviceId};
-    
-    const char* options = "-cl-nv-verbose"; //  -cl-opt-disable";
-    
+        
+    if (contains(m_selectedPlatformName, "Portable Computing Language"))
+        options += "-g "; // -cl-opt-disable"; 
+    else if (contains(m_selectedPlatformName, "NVIDIA"))
+        options += " -cl-nv-verbose "; 
+        
     PerformanceLap lap;
-    err = clBuildProgram(program, 1, device_ids, options, build_notify, NULL);
-//    CHECK_CL_ERRORS(err);
+    err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
+    cl_int compileErr = err;
+    
     
     // Determine the size of the log
     size_t log_size;
@@ -394,12 +495,14 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     // Print the log
     printf("BUILD INFO:\n");
-    printf(log);
+    printf("Compilation flags: %s\n", options.c_str());
+    printf("%s", log);
     printf("\n");
     free(log);
         
     lap.stop();
     
+    CHECK_CL_ERRORS(compileErr);
     printf("Kernel compilation time: %0.2f seconds\n", lap.lap());
     
     m_program = program;
@@ -416,52 +519,13 @@ cl_kernel OCLUtils::createKernel(const char* name)
     return kernel;
 }
 
-//cl_program OCLUtils::createProgramFromBinary(const char *binary_file_name) 
-//{
-//    printf("Loading %s...\n", binary_file_name);
-//    printf("For %d devices...\n", num_devices);
-//    
-//  // Early exit for potentially the most common way to fail: AOCX does not exist.
-//  if(!fileExists(binary_file_name)) 
-//  {
-//    printf("AOCX file '%s' does not exist.\n", binary_file_name);
-//    throw Error("Failed to load binary file");
-//  }
-//
-//  // Load the binary.
-//  size_t binary_size;
-//  unsigned char* binary = loadBinaryFile(binary_file_name, &binary_size);
-//  
-//  if (binary == NULL) 
-//  {
-//      throw Error("Failed to load binary file");
-//  }
-//
-//  size_t binary_lengths[num_devices];
-//  unsigned char * binaries[num_devices];
-//  
-//  for (int i = 0; i < num_devices; i++) 
-//  {
-//    binary_lengths[i] = binary_size;
-//    binaries[i] = binary;
-//  }
-//
-//  cl_int status;
-//  scoped_array<cl_int> binary_status(num_devices);
-//
-//  cl_program program = clCreateProgramWithBinary(context, num_devices, devices, binary_lengths,
-//      (const unsigned char **) binaries, binary_status, &status);
-//
-//  printf("create program finished\n");
-//  fflush(stdout);
-//  //checkError(status, "Failed to create program with binary");
-//  SAMPLE_CHECK_ERRORS(status);
-////  for(unsigned i = 0; i < num_devices; ++i) {
-////    throw Error("Failed to load binary for device");
-////  }
-//
-//  return program;
-//}
+int OCLUtils::contains(std::string& str, const char* q)
+{
+    if (str.find(std::string(q)) != std::string::npos) {
+        return 1;
+    }
+    return 0;
+}
 
 OCLQueue* OCLUtils::createQueue()
 {
@@ -490,10 +554,21 @@ OCLQueue::~OCLQueue()
     // CHECK_CL_ERRORS(err);
 }
 
-void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
+void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems, size_t workgroupsize)
 {
-    size_t wgSize[3] = {32, 1, 1};
-    size_t gSize[3] = {(workitems+31)/32*32, 1, 1};
+    // workitems must be multiple of workgroupsize
+    if (workgroupsize > 1)
+    {
+        size_t new_workitems = ((workitems + (workgroupsize-1)) / workgroupsize) * workgroupsize;
+                
+        if (verbose > 2)
+            printf("Rounding workitems from %ld to %ld\n", workitems, new_workitems);
+        
+        workitems = new_workitems;
+    }
+    
+    size_t wgSize[3] = {workgroupsize, 1, 1};
+    size_t gSize[3] = {workitems, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
     CHECK_CL_ERRORS(ret);
