@@ -34,12 +34,10 @@ public:
     
 	
     long* m_W;
-    const char* m_P;
-    const char* m_T;
-    long m_n;
-    long m_m;
     long m_k;
     long m_top;
+    int m_tileLen;
+    std::string m_localStore;
     long m_final_d_r[2];
     
     cl_context m_context;
