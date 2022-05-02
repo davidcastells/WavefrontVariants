@@ -18,6 +18,7 @@
 #include "fasta.h"
 #include "OCLUtils.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
+#include "OCLGPUWavefrontDynamicDiamond2Cols.h"
 
 int wavefront_classic(const char* P, const char* T, int m, int n, int k);
 int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
@@ -71,6 +72,7 @@ int doWFD = 0;
 int doWFD2 = 0;
 int doWFDD = 0;
 int doWFDD2 = 0;
+int doWFDD2OCL = 0;
 int doAlignmentPath = 0;
 
 long gM = 100;
@@ -187,6 +189,8 @@ void parseArgs(int argc, char* args[])
             doWFDD = 1;
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
+        if (strcmp(args[i], "-WFDD2OCL") == 0)
+            doWFDD2OCL = 1;
         
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
             verbose = 1;
@@ -262,6 +266,8 @@ void usage()
     printf("        Use the wavefront diamond approach.\n");
     printf("    %s-WFDD%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Use the wavefront dynamic diamond approach.\n");
+    printf("    %s-WFDD2OCL%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Use the wavefront dynamic diamond approach with 2 columns in OpenCL.\n");
     printf("\n");
 
     printf("  %sOperational Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -306,26 +312,26 @@ int main(int argc, char* args[])
 
     if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
     {
-            printf("Generating random Input\n");
-            generatePT(&gP, &gT, gM, gN);
+        printf("Generating random Input\n");
+        generatePT(&gP, &gT, gM, gN);
     }
     else if (gfP != NULL)
     {
-            printf("Reading input files\n");
-            fastaP = FastaReader::read(gfP);
-            fastaT = FastaReader::read(gfT);
+        printf("Reading input files\n");
+        fastaP = FastaReader::read(gfP);
+        fastaT = FastaReader::read(gfT);
 
-            gP = fastaP.seq;
-            gT = fastaT.seq;
+        gP = fastaP.seq;
+        gT = fastaT.seq;
 
-            gM = strlen(gP);
-            gN = strlen(gT);
+        gM = strlen(gP);
+        gN = strlen(gT);
     }
     else
     {
-            printf("Explicit Input\n");
-            gM = strlen(gP);
-            gN = strlen(gT);
+        printf("Explicit Input\n");
+        gM = strlen(gP);
+        gN = strlen(gT);
     }
 
     if (gK == -1)
@@ -337,8 +343,9 @@ int main(int argc, char* args[])
     //printf("P=%s\n", P);
     //printf("T=%s\n", T);
     printf("Wavefront algorithm test\n");
+    
 //        printf("using %d threads\n", omp_get_max_threads());
-    printf("m=%d n=%d k=%d\n", gM, gN, gK);
+    printf("m=%ld n=%ld k=%ld (min d=%ld)\n", gM, gN, gK, abs(gM-gN));
 
 //        printf("do alignment: %d\n", doAlignmentPath);
 
@@ -410,6 +417,24 @@ int main(int argc, char* args[])
     {
         WavefrontDynamicDiamond2Cols aligner;
         aligner.execute(gP, gT, gK, doAlignmentPath);
+    }
+    
+    if (doWFDD2OCL)
+    {
+        OCLUtils* ocl = OCLUtils::getInstance();
+        ocl->selectPlatform(gPid);
+        std::string pn = ocl->getSelectedPlatformName();
+        if (OCLUtils::contains(pn, "FPGA") || OCLUtils::contains(pn, "Xilinx"))
+        {
+            throw std::runtime_error("WFDD2OCL FPGA version not implemented yet");
+//            OCLFPGAWavefrontOriginal2Cols aligner;
+//            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
+        else
+        {
+            OCLGPUWavefrontDynamicDiamond2Cols aligner;
+            aligner.execute(gP, gT, gK, doAlignmentPath);
+        }
     }
 
     return 0;
