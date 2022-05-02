@@ -84,18 +84,34 @@ char* gfP = NULL;
 char* gfT = NULL;
 
 int gPid = 0;
+int gDid = 0;           // OpenCL device ID
+int gWorkgroupSize = 8; // Workgroup size
+
+double gPrintPeriod = -1;
+
+int gExtendAligned = 0; // use aligned reads during extension
 
 int gMeasureIterationTime = 0;
 
 int verbose = 0;
+int gStats = 0;
 
 int gEnqueuedInvocations = 100;
 int gTileLen = 3;       // Tile length
+char* gLocalTileMemory = "register";    // can be register or shared
+
+std::string gExeDir = ".";
 
 void usage();
 
 void parseArgs(int argc, char* args[])
 {
+
+    gExeDir = OCLUtils::getDir(args[0]);
+    
+    auto ocl = OCLUtils::getInstance();
+    ocl->setKernelDir(gExeDir);
+    
     for (int i=1; i < argc; i++)
     {
         //printf("parsing %s\n", args[i]);
@@ -121,6 +137,18 @@ void parseArgs(int argc, char* args[])
         {
             gPid = atol(args[++i]);
 //            printf("gpid = %d\n", gPid);
+        }
+        if ((strcmp(args[i], "-did") == 0) || (strcmp(args[i], "--opencl-device-id") == 0))
+        {
+            gDid = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-wgs") == 0) || (strcmp(args[i], "--workgroup-size") == 0))
+        {
+            gWorkgroupSize = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-pp") == 0) || (strcmp(args[i], "--print-period") == 0))
+        {
+            gPrintPeriod = atof(args[++i]);
         }
         if ((strcmp(args[i], "-qi") == 0) || (strcmp(args[i], "--enqueued-invocations") == 0))
         {
@@ -159,12 +187,21 @@ void parseArgs(int argc, char* args[])
             doWFDD = 1;
         if (strcmp(args[i], "-WFDD2") == 0)
             doWFDD2 = 1;		
+        
         if ((strcmp(args[i], "-v") == 0) || (strcmp(args[i], "--verbose") == 0))
             verbose = 1;
+        if ((strcmp(args[i], "-vv") == 0) || (strcmp(args[i], "--verbose-2") == 0))
+            verbose = 2;
         if ((strcmp(args[i], "-h") == 0) || (strcmp(args[i], "--help") == 0))
             usage();
+        if ((strcmp(args[i], "-s") == 0) || (strcmp(args[i], "--stats") == 0))
+            gStats = 1;
+        if ((strcmp(args[i], "-ea") == 0) || (strcmp(args[i], "--extend-aligned") == 0))
+            gExtendAligned = 1;
         if (strcmp(args[i], "--measure-iteration-time") == 0)
             gMeasureIterationTime = 1;
+        if (strcmp(args[i], "--local-tile-memory") == 0)
+            gLocalTileMemory = args[++i];
     }
 }
 
@@ -179,11 +216,18 @@ void usage()
     printf("                of the wavefront algorithm\n");
     printf("                (c) Copyright 2021 by David Castells-Rufas \n");
     printf("\n");
+    
     printf("%sOPTIONS\n%s", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("    %s-h,--help%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Display the help message.\n");
     printf("    %s-v,--verbose%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Verbose output.\n");
+    printf("    %s-vv,--verbose-2%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        More verbose output.\n");
+    printf("    %s-pp,--print-period%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the period (in seconds) of printing progress.\n");
+    printf("    %s-s,--stats%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Print various statistics.\n");
     printf("\n");
 
     printf("  %sInput Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
@@ -225,23 +269,28 @@ void usage()
     printf("        Maximum allowed errors (reduce memory usage).\n");
     printf("    %s-a,--align%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Print alignment path to transforms T into P.\n");
-    printf("    %s-ea,--extend-aligned%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
-    printf("        Do extension phase with aligned read operations.\n");
-    printf("    %s-qi,--enqueued-invocations%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
-    printf("        Number of enqueued kernel invocations before checking status.\n");
-    printf("    %s-tl,--tile-length%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
-    printf("        Tile length.\n");
     printf("\n");
-
 
     printf("  %sOpenCL Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("    %s-pid,--opencl-platform-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
     printf("        Index of the OpenCL platform to use (select from the list).\n");
+    printf("    %s-did,--opencl-device-id%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Index of the OpenCL device to use (select from the list).\n");
+    printf("    %s-wgs,--workgroup-size%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Number of workitems per Workgroup (default is 8).\n");
     printf("\n");
-    
-    printf("  %sPerformance Analysis Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+
+    printf("  %sExperimental and Performance Analysis Options:%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("    %s--measure-iteration-time%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
     printf("        Reports the cummulative time as iterations progress.\n");
+    printf("    %s-ea,--extend-aligned%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END);
+    printf("        Do extension phase with aligned read operations.\n"); 
+    printf("    %s-qi,--enqueued-invocations%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Number of enqueued kernel invocations before checking status.\n");
+    printf("    %s-tl,--tile-length%s %sNUMBER%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Tile length.\n");
+    printf("    %s--local-tile-memory%s %sSTRING%s\n", TEXT_SCAPE_BOLD, TEXT_SCAPE_END, TEXT_SCAPE_UNDERLINE, TEXT_SCAPE_END);
+    printf("        Specify the type of memory used in local tiles [register|shared].\n");
     printf("\n");
 
     exit(0);
