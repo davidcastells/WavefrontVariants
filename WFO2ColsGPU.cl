@@ -26,7 +26,9 @@
 
 //#define POLAR_W_TO_INDEX(d, r, w)			CARTESIAN_TO_INDEX(POLAR_W_TO_CARTESIAN_Y((d), (r)),POLAR_W_TO_CARTESIAN_X((d), (r)),w)
 // #define POLAR_W_TO_INDEX(d, r)                  ((d)+m_k + (((r)%(2*tileLen)) * (2*m_k+1)))
-#define POLAR_W_TO_INDEX(d, r)		((d)+m_k + (((r)%2) * (2*m_k+1)))
+//#define POLAR_W_TO_INDEX(d, r)		((d)+m_k + (((r)%2) * (2*m_k+1)))
+
+#define POLAR_W_TO_INDEX(d, r)          ((d)+ROW_ZERO_OFFSET + (((r)%2) * COLUMN_HEIGHT))
 
 
 #define POLAR_W_TO_CARTESIAN_Y(d,r)		((((d) >= 0)? -(d) : 0 ) + (r))
@@ -35,13 +37,15 @@
 #define CARTESIAN_TO_POLAR_W_D(y, x)		((x)-(y))
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
-#define POLAR_LOCAL_W_TO_INDEX(d, r, tl) ((r) >= (tl))? (2*((r)-(tl))*(tl)) - ((r)-(tl))*((r)-(tl)) + (2*(tl)-(r)-1) + (d) + (tl)*(tl) : ((r)*(r)+(r)+d)
+//#define POLAR_LOCAL_W_TO_INDEX(d, r, tl) ((r) >= (tl))? (2*((r)-(tl))*(tl)) - ((r)-(tl))*((r)-(tl)) + (2*(tl)-(r)-1) + (d) + (tl)*(tl) : ((r)*(r)+(r)+d)
+#define POLAR_LOCAL_W_TO_INDEX(d, r)    ((r) >= TILE_LEN)? (2*((r)-TILE_LEN)*TILE_LEN) - ((r)-TILE_LEN)*((r)-TILE_LEN) + (2*TILE_LEN-(r)-1) + (d) + TILE_LEN*TILE_LEN : ((r)*(r)+(r)+d)
 
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
 #ifdef GLOBAL_STORE
     #define LOCAL_TILE_TYPE     __private
+    #define LOCAL_TILE_PTR      LOCAL_TILE_TYPE long*
 #endif
 
 #ifdef REGISTER_STORE
@@ -438,9 +442,6 @@ int inline __attribute__((always_inline))
 polarExistsInW(long d, long r)
 {
     int ret =  abs(d) <= r;
-    
-    //printf("polar exist in W (%ld, %ld) = %d\n", d, r, ret);
-    
     return ret;
 }
 
@@ -477,7 +478,7 @@ polarExistsInW(long d, long r)
     void inline __attribute__((always_inline)) 
     writeToW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
     {    
-        int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+        int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr);
 
         localW[lidx] = v;
 
@@ -538,7 +539,7 @@ polarExistsInW(long d, long r)
         
         if (isInLocal)
         {
-            int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
+            int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr);
             long lv = localW[lidx];
 
     #ifdef DEBUG
@@ -578,11 +579,10 @@ processCell(__global char* P,
         LOCAL_TILE_PTR localW,
         int ld,
         int lr,
-        int* doRun)
+        int* doRun,
+        long m_top,
+        long final_d)
 {
-    // we already reached the final point in previous invocations
-    long m_top = max2(m_m,m_n);
-
     // printf("%ld  >= %ld ? \n", p_final_d_r[0], m_top);
 
     if (p_final_d_r[0] >= m_top)
@@ -592,11 +592,21 @@ processCell(__global char* P,
         return;
     }
 
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
 
     // early exit for useless work items
     if (!polarExistsInW(d,r))
         return;
+        
+    long diag_up;
+    long left;
+    long diag_down;
+    
+    if (r > 0)
+    {
+        diag_up = READ_W(d+1, r-1, ld+1, lr-1);
+        left = READ_W(d, r-1, ld, lr-1);
+        diag_down = READ_W(d-1, r-1, ld-1, lr-1) ;
+    }
             
     if (r == 0)
     {
@@ -620,20 +630,22 @@ processCell(__global char* P,
     }
     else
     {
-        long diag_up = (polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1) : 0;
-        long left = (polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;
-        long diag_down = (polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;
+        diag_up = (polarExistsInW(d+1, r-1))? diag_up : 0;
+        left = (polarExistsInW(d,r-1))? left : 0;
+        diag_down = (polarExistsInW(d-1,r-1))? diag_down : 0;
 
         //printf("u|l|r = %ld|%ld|%ld\n",  diag_up, left, diag_down);
 
         long compute;
 
         if (d == 0)
-            compute = max3(diag_up, left+1, diag_down);
+            compute = max(diag_up, diag_down);
         else if (d > 0)
-            compute = max3(diag_up, left+1, diag_down+1);
+            compute = max(diag_up, diag_down+1);
         else
-            compute = max3(diag_up+1, left+1, diag_down);
+            compute = max(diag_up+1, diag_down);
+            
+        compute = max(left+1, compute);
             
         //printf("compute: %ld, u|l|r = %ld|%ld|%ld\n", compute, diag_up, left, diag_down);
 
@@ -747,7 +759,7 @@ __kernel void wfo2cols(
     // Increase
     for (int i=0 ; ((i < tileLen) && (doRun)); i++)
         for (int j=-i; ((j <= i) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, GET_LOCAL_TILE_REF localW, j, i, &doRun);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, GET_LOCAL_TILE_REF localW, j, i, &doRun, m_top, final_d);
     
     // Decrease
     for (int i=0 ; ((i < tileLen) && (doRun)); i++)
@@ -755,6 +767,6 @@ __kernel void wfo2cols(
         int ii = tileLen - 1 -i;
         
         for (int j=-ii; ((j <= ii) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, GET_LOCAL_TILE_REF localW, j, tileLen+i, &doRun);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, GET_LOCAL_TILE_REF localW, j, tileLen+i, &doRun, m_top, final_d);
     }
 }
