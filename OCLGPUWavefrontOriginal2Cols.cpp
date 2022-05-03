@@ -106,9 +106,13 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     {
         m_localStore = "REGISTER_STORE";
     }
-    else
+    else if (strcmp(gLocalTileMemory, "shared") == 0)
     {
         m_localStore = "SHARED_STORE";
+    }
+    else
+    {
+        m_localStore = "GLOBAL_STORE";
     }
 
     //long size = (2*m_tileLen)*(2*k+1);
@@ -146,8 +150,14 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     
     auto ocl = OCLUtils::getInstance();
         
-    std::string options = "-D TILE_LEN=" + std::to_string(m_tileLen) + " -D " + m_localStore + " -D WORKGROUP_SIZE=" + std::to_string(gWorkgroupSize) + " ";
-
+    std::string options ="";
+    options += " -D TILE_LEN=" + std::to_string(m_tileLen);
+    options += " -D " + m_localStore;
+    options += " -D WORKGROUP_SIZE=" + std::to_string(gWorkgroupSize);
+    options += " -D COLUMN_HEIGHT=" + std::to_string(2*k+1);
+    options += " -D ROW_ZERO_OFFSET=" + std::to_string(k);
+    options += " ";
+    
     std::string plName = ocl->getSelectedPlatformName();
     if (OCLUtils::contains(plName, "Portable Computing Language") && (verbose > 1))
         options += " -D DEBUG ";
