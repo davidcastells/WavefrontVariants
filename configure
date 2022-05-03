@@ -103,7 +103,7 @@ if bHasCUDA:
 else:
     CC = "g++"
     CFLAGS += " -fpermissive "
-    if (getGccVersion().split(".")[0]>7):
+    if (int(getGccVersion().split(".")[0])>7):
         CFLAGS += " -gdwarf-4 "
 
 print("--> CFLAGS: {}".format(CFLAGS)) 
