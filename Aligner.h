@@ -35,11 +35,10 @@ public:
 			printf("Alignment path:\n");
 			//printf(gT);
 			//printf("\n");
-			printf(path);
-			printf("\n");
+			printf("%s\n", path);
 			//printf(gP);
 			//printf("\n");
-			printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(),  ed, lap.lap());
+			printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(),  ed, lap.lap());
 			freePath(path);
 		}
 		else
@@ -48,7 +47,7 @@ public:
 			lap.stop();
 			
 			if (!gMeasureIterationTime)
-    			printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+    			printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
 		}
 	}
 	
