@@ -40,6 +40,131 @@ int polarExistsInW(long d, long r)
     return abs(d) <= r;
 }
 
+#define LOCAL_R(r)  ((2+r)%2)
+#define LOCAL_D(d)  ((d)+TILE_LEN)
+
+
+void  processCell(__global char* P,     
+        __global char* T,   
+        long m_m,           
+        long m_n, 
+        __local long localW[2][TILE_LEN*2+1], 
+        size_t gid, 
+        size_t lid, 
+        long r,
+        long d, 
+        int lr, int ld, 
+        int* pdone,
+        __global long* p_final_d_r, 
+        long m_top, 
+        long final_d,
+        long tile)
+{
+    long diag_up;
+    long left;
+    long diag_down; 
+    
+    int lup;
+    int ldown;
+    
+    
+    int done = *pdone;
+    
+    if (done)
+        return;
+
+    if (lr < TILE_LEN)
+    {
+        lup = lr;
+        ldown = -lr;
+    }
+    else
+    {
+        lup   = 2*TILE_LEN - lr -1;
+        ldown = -(2*TILE_LEN - lr -1);
+    }
+    
+    // printf("r:%ld lr:%d - d:%ld ld: %d [%d, %d]\n", r, lr, d, ld, lup, ldown);
+
+    if ((ld >= ldown) && (ld <= lup))
+    {
+        //printf("up: %d, %d\n", LOCAL_R(lr-1), LOCAL_D(ld+1));
+        
+        // this cell must be computed
+        diag_up = localW[LOCAL_R(lr-1)][LOCAL_D(ld+1)];
+        left = localW[LOCAL_R(lr-1)][LOCAL_D(ld)];
+        diag_down = localW[LOCAL_R(lr-1)][LOCAL_D(ld-1)];
+                
+        diag_up = (polarExistsInW(d+1, r-1))?  diag_up  : 0; 
+        left = (polarExistsInW(d,r-1))? left : 0;
+        diag_down = (polarExistsInW(d-1,r-1))?  diag_down  : 0; 
+        
+        long compute;
+
+        if (d == 0)
+            compute = max(diag_up, diag_down);
+        else if (d > 0)
+            compute = max(diag_up, diag_down+1);
+        else
+            compute = max(diag_up+1, diag_down);
+         
+            
+        if (r == 0)
+        {
+            compute = 0;
+            //printf("compute = 0\n");
+        }
+        else
+            compute = max(left+1, compute);
+            
+
+        if ((done == 0) && (d == final_d) && (compute >= m_top))
+        {
+            //printf("tile: %ld WR(%d, %d) c: %ld\n", tile, lr, ld, compute);
+            //printf("COMPLETE\n");
+
+            localW[LOCAL_R(lr)][LOCAL_D(ld)] = compute;
+            p_final_d_r[0] = compute;   // furthest reaching point
+            p_final_d_r[1] = r;         // at edit distance = r
+            *pdone = 1;
+            return;
+        }
+        
+        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+
+        if ((ex < m_n) && (ey < m_m))
+        {
+            long extendv = extend(P, T, m_m, m_n, ey, ex);
+            long extended = compute + extendv;
+
+            // printf("WR %ld\n", extended);
+
+            localW[LOCAL_R(lr)][LOCAL_D(ld)] = extended;
+            //printf("tile: %ld WR(%d, %d) e: %ld\n", tile, lr, ld, extended);
+
+            if ((done == 0) && (d == final_d) && (extended >= m_top))
+            {
+                //printf("COMPLETE\n");
+                p_final_d_r[0] = extended;  // furthest reaching point
+                p_final_d_r[1] = r;         // at edit distance = r
+                *pdone = 1;
+                return;
+            }
+        }
+        else
+        {
+            //printf("tile: %ld WR(%d, %d) c: %ld\n", tile, lr, ld, compute);
+
+            localW[LOCAL_R(lr)][LOCAL_D(ld)] = compute;
+            // it is impossible to assign the final result here, because it would
+            // have been in the previous compute check
+        }
+    
+    }  
+    
+
+}        
 
 /**
  * This is the initial kernel version.
@@ -56,11 +181,11 @@ int polarExistsInW(long d, long r)
  * @param furthest reaching radius 
  */
 __kernel void wfo2cols(
-        __global char* P, 
-        __global char* T, 
-        long m_m, 
+        __global char* P,   // 0  
+        __global char* T,   // 1
+        long m_m,           // 2
         long m_n, 
-        long r, 
+        long r0, 
         long m_k,  
         __global long* m_W,
         __global long* p_final_d_r)
@@ -69,121 +194,63 @@ __kernel void wfo2cols(
     size_t lid = get_local_id(0);
     
 #ifdef SHARED_STORE
-    __local long localW[WORKGROUP_SIZE];
+    //__local long localW[WORKGROUP_SIZE];
+    
+    __local long localW[2][TILE_LEN*2+1];   //  column, diagonal
 #endif
     
     //long d = gid - (r-1);
-    long d = r - gid; 
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long m_top = max2(m_m,m_n);
     
-    long diag_up;
-    long left;
-    long diag_down; 
-        
-#ifdef SHARED_STORE
-    if (r > 0)
-    {
-        left = m_W[POLAR_W_TO_INDEX(d, r-1)];
-        localW[lid] = left;
-        // printf("lid=%ld d=%ld r=%ld\n ", lid, d, r);
-    }       
-    barrier(CLK_LOCAL_MEM_FENCE);
-    
-    diag_up = localW[(lid-1) % WORKGROUP_SIZE];
-    diag_down = localW[(lid+1) % WORKGROUP_SIZE];
-    
-#else
-        
-    if (r > 0)
-    {
-        diag_up = m_W[POLAR_W_TO_INDEX(d+1, r-1)]  ; 
-        left = m_W[POLAR_W_TO_INDEX(d, r-1)] ;
-        diag_down = m_W[POLAR_W_TO_INDEX(d-1, r-1)]  ; 
-    }
-#endif
+    int ld = -TILE_LEN + lid;
+    long tile = gid / (TILE_LEN*2 + 1);
+    long d = -r0 + 2 * TILE_LEN * tile + ld;
 
-    // we already reached the final point in previous invocations
+
+    if (gid == 0)
+    {
+        // printf("m_top = %ld final_d= %ld\n", m_top, final_d);
+    }
+    
     if (p_final_d_r[0] >= m_top)
         return;
+
+    // first, fetch the local values
+    localW[LOCAL_R(0)][LOCAL_D(ld)] = m_W[POLAR_W_TO_INDEX(d, r0%2)];
+    localW[LOCAL_R(1)][LOCAL_D(ld)] = m_W[POLAR_W_TO_INDEX(d, (r0+1)%2)];
     
-    // early exit for useless work items
-    if (!polarExistsInW(d,r))
-        return;
+    //printf("t[%ld][%ld] - r:%ld tile:%ld fetching d:%ld ld:%d\n", gid, lid, r0, tile,  d, ld);
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    //printf("t[%ld][%ld] - r0: %ld   d:%ld\n", gid, lid, r0, d);
+
+
     
-    if (r == 0)
+    int done = 0;
+
+    // Now compute the tile using only shared memory    
+    for (int lr = 0; lr < 2*TILE_LEN; lr++)
     {
-        if (d == 0)
-        {
-            long extended = extend(P, T, m_m, m_n, 0, 0); 
-            // initial case
-            m_W[POLAR_W_TO_INDEX(d, r)] = extended; 
-            if ((d == final_d) && extended >= m_top)
-            {
-                m_W[POLAR_W_TO_INDEX(d, r)] = extended;
-                p_final_d_r[0] = extended;   // furthest reaching point
-                p_final_d_r[1] = r;         // at edit distance = r
-                return;
-            }
-        }
-        else
-            m_W[POLAR_W_TO_INDEX(d, r)]  = 0;
-            
+        long r = r0 + lr;
+
+        //printf("t[%ld][%ld] - r: %ld   d:%ld  lr: %d ld: %d\n", gid, lid, r, d, lr, ld);
+
+        processCell(P, T, m_m, m_n, localW, gid, lid, r, d, lr, ld, &done, p_final_d_r, m_top, final_d, tile);
         
+        barrier(CLK_LOCAL_MEM_FENCE);
+
     }
-    else
+    
+    
+    if (abs(ld) < TILE_LEN)
     {
-#ifdef SHARED_STORE
-        diag_up = (polarExistsInW(d+1, r-1))?  ((lid > 0)? diag_up : m_W[POLAR_W_TO_INDEX(d+1, r-1)])  : 0; 
-        left = (polarExistsInW(d,r-1))? left  : 0;
-        diag_down = (polarExistsInW(d-1,r-1))? ((lid < (WORKGROUP_SIZE-1)) ? diag_down : m_W[POLAR_W_TO_INDEX(d-1, r-1)])  : 0; 
-#else
-        diag_up = (polarExistsInW(d+1, r-1))?  diag_up  : 0; 
-        left = (polarExistsInW(d,r-1))? left : 0;
-        diag_down = (polarExistsInW(d-1,r-1))?  diag_down  : 0; 
-#endif
-        long compute;
-
-        if (d == 0)
-            compute = max(diag_up, diag_down);
-        else if (d > 0)
-            compute = max(diag_up, diag_down+1);
-        else
-            compute = max(diag_up+1, diag_down);
-            
-        compute = max(left+1, compute);
-
-        if ((d == final_d) && compute >= m_top)
-        {
-            m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-            p_final_d_r[0] = compute;   // furthest reaching point
-            p_final_d_r[1] = r;         // at edit distance = r
-            return;
-        }
-
-        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
-
-        if ((ex < m_n) && (ey < m_m))
-        {
-            long extendv = extend(P, T, m_m, m_n, ey, ex);
-            long extended = compute + extendv;
-
-            m_W[POLAR_W_TO_INDEX(d, r)] = extended;
-
-            if ((d == final_d) && extended >= m_top)
-            {
-                p_final_d_r[0] = extended;  // furthest reaching point
-                p_final_d_r[1] = r;         // at edit distance = r
-                return;
-            }
-        }
-        else
-        {
-            m_W[POLAR_W_TO_INDEX(d, r)] = compute;
-            // it is impossible to assign the final result here, because it would
-            // have been in the previous compute check
-        }
-    }
-
+        // printf("global WR(%ld, %d) = %ld\n", d, 0, localW[LOCAL_R(0)][LOCAL_D(ld)]);
+        // printf("global WR(%ld, %d) = %ld\n", d, 1, localW[LOCAL_R(1)][LOCAL_D(ld)]);
+    
+        m_W[POLAR_W_TO_INDEX(d, r0%2)] = localW[LOCAL_R(0)][LOCAL_D(ld)]; 
+        m_W[POLAR_W_TO_INDEX(d, (r0+1)%2)] = localW[LOCAL_R(1)][LOCAL_D(ld)];
+    }   
+    
 }
