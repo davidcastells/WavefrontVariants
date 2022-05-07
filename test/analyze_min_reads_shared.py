@@ -18,6 +18,9 @@ x_global = np.array(df_global['wgs'])
 y_global = np.array(df_global['time'])
 gcups_global = np.array(df_global['gcups'])
 
+plt.rcParams["figure.figsize"] = [5, 4]
+plt.rcParams["figure.autolayout"] = True
+
 plt.plot(x_shared, y_shared, label='shared')
 plt.plot(x_global, y_global, label='global')
 
@@ -33,10 +36,14 @@ plt.savefig('min_reads_shared.svg')
 plt.show()
 
 
-cmd = 'inkscape min_reads_shared.svg --export-area-drawing --export-pdf=min_reads_shared.pdf'
-print(cmd)
-os.system(cmd)
 
+def svg2pdf(file):
+    cmd = 'inkscape {}.svg --export-area-drawing --export-pdf={}.pdf'.format(file, file)
+    print(cmd)
+    os.system(cmd)
+    
+
+svg2pdf('min_reads_shared')
 
 plt.plot(x_shared, gcups_shared, label='shared')
 plt.plot(x_global, gcups_global, label='global')
@@ -52,3 +59,5 @@ plt.legend()
 plt.savefig('min_reads_shared_gcups.svg')
 plt.show()
 
+
+svg2pdf('min_reads_shared_gcups')
