@@ -91,7 +91,11 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     m_k = k;
     m_tileLen = gTileLen;
 
-    if (strcmp(gLocalTileMemory, "shared") == 0)
+    if (strcmp(gLocalTileMemory, "register") == 0)
+    {
+        m_localStore = "REGISTER_STORE";
+    }
+    else if (strcmp(gLocalTileMemory, "shared") == 0)
     {
         m_localStore = "SHARED_STORE";
     }
@@ -210,7 +214,7 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     if (gMeasureIterationTime)
         printf("r,time\n");
         
-    for (long r=0; r < m_k; r++)
+    for (long r=0; r < m_k; r+= m_tileLen)
     {
         invokeKernel(r);
 
@@ -239,6 +243,18 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         lastpercent--;
         progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
     }
+
+    m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+            
+    if (verbose > 1)
+    {
+        printf("Check to continue\nTop: %ld\n", m_top);
+        printf("Fur. reaching point: %ld\n", m_final_d_r[0]);
+        printf("Edit distance: %ld\n", m_final_d_r[1]);
+    }
+
+    if (m_final_d_r[0] >= m_top)
+        return m_final_d_r[1];
 
     return m_top;
 }
@@ -281,7 +297,10 @@ void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
 
     // long k = max2(m_m,m_n);
     
-    m_queue->invokeKernel1D(m_kernel, 2*r+1, gWorkgroupSize);
+    long numTilesPerInvocation = (r/m_tileLen)+1;
+    long numWorkItemsPerTile = (2*m_tileLen + 1);
+    long numWorkItems = numTilesPerInvocation * numWorkItemsPerTile;
+    m_queue->invokeKernel1D(m_kernel, numWorkItems, numWorkItemsPerTile);
 }
 
 char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(long* distance)
