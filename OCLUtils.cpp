@@ -239,7 +239,9 @@ std::string OCLUtils::errorToStr(cl_int error)
 //			CASE_CL_CONSTANT(CL_INVALID_PROPERTY)
 //			CASE_CL_CONSTANT(CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR)
 	default:
-		return "UNKNOWN ERROR CODE " + error;
+	    std::string serr("UNKNOWN ERROR CODE ");
+	    serr += std::to_string(error);
+		return  serr;
 	}
 
 #undef CASE_CL_CONSTANT

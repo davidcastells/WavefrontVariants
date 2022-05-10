@@ -86,7 +86,7 @@ OCLFPGAWavefrontOriginal2Cols::~OCLFPGAWavefrontOriginal2Cols()
 }
 
 
-void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
+void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
@@ -101,7 +101,7 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -147,7 +147,7 @@ void OCLFPGAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long 
     printf("input set\n");
 }
 
-void OCLFPGAWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+void OCLFPGAWavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
 #define DECIMALS_PERCENT    1000
     if (!verbose)
@@ -173,7 +173,7 @@ void OCLFPGAWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& l
 
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
 
-long OCLFPGAWavefrontOriginal2Cols::getDistance()
+INT_TYPE OCLFPGAWavefrontOriginal2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -183,10 +183,10 @@ long OCLFPGAWavefrontOriginal2Cols::getDistance()
     m_queue->writeBuffer(m_buf_P, (void*) m_P, m_m);
     m_queue->writeBuffer(m_buf_T, (void*) m_T, m_n);
     
-    long h = 2*m_k+1;
+    INT_TYPE h = 2*m_k+1;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m, m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m, m_n);
     
     
     setCommonArgs();
@@ -195,7 +195,7 @@ long OCLFPGAWavefrontOriginal2Cols::getDistance()
     m_final_d_r[1] = m_top; // estimated distance (now, worst case)
     m_queue->writeBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long) );
     
-    for (long r=0; r < m_k; r++)
+    for (INT_TYPE r=0; r < m_k; r++)
     {
         invokeKernel(r);
 
@@ -231,17 +231,17 @@ void OCLFPGAWavefrontOriginal2Cols::setCommonArgs()
     ret = clSetKernelArg(m_kernel, 1, sizeof(cl_mem), (void *)&m_buf_T);
     CHECK_CL_ERRORS(ret);
     
-    ret = clSetKernelArg(m_kernel, 2, sizeof(cl_long), (void *)&m_m);
+    ret = clSetKernelArg(m_kernel, 2, sizeof(CL_INT_TYPE), (void *)&m_m);
     CHECK_CL_ERRORS(ret);
 
-    ret = clSetKernelArg(m_kernel, 3, sizeof(cl_long), (void *)&m_n);
+    ret = clSetKernelArg(m_kernel, 3, sizeof(CL_INT_TYPE), (void *)&m_n);
     CHECK_CL_ERRORS(ret);
     
     //long size = 2*(2*m_k+1);
 
     long k = max2(m_m,m_n);
 
-    ret = clSetKernelArg(m_kernel, 5, sizeof(cl_long), (void *)&k);
+    ret = clSetKernelArg(m_kernel, 5, sizeof(CL_INT_TYPE), (void *)&k);
     CHECK_CL_ERRORS(ret);
     
     ret = clSetKernelArg(m_kernel, 6, sizeof(cl_mem), (void *)&m_buf_W);
@@ -255,11 +255,11 @@ void OCLFPGAWavefrontOriginal2Cols::setCommonArgs()
 //    CHECK_CL_ERRORS(ret);
 }
 
-void OCLFPGAWavefrontOriginal2Cols::invokeKernel(long r)
+void OCLFPGAWavefrontOriginal2Cols::invokeKernel(INT_TYPE r)
 {
     cl_int ret;
     
-    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
+    ret = clSetKernelArg(m_kernel, 4, sizeof(CL_INT_TYPE), (void *)&r);
     CHECK_CL_ERRORS(ret);
 
     //long k = max2(m_m,m_n);
@@ -267,7 +267,7 @@ void OCLFPGAWavefrontOriginal2Cols::invokeKernel(long r)
     m_queue->invokeKernel1D(m_kernel, 2*r+1, gWorkgroupSize);
 }
 
-char* OCLFPGAWavefrontOriginal2Cols::getAlignmentPath(long* distance)
+char* OCLFPGAWavefrontOriginal2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     printf("Not implemented yet\n");
     exit(-1);

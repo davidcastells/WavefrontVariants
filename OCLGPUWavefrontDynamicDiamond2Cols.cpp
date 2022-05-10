@@ -96,7 +96,7 @@ OCLGPUWavefrontDynamicDiamond2Cols::~OCLGPUWavefrontDynamicDiamond2Cols()
 }
 
 
-void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
+void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
@@ -106,11 +106,11 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     m_k = k;
     m_tileLen = gTileLen;
 
-    long size = (2*m_tileLen)*(2*k+1);
+    INT_TYPE size = (2*m_tileLen)*(2*k+1);
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -130,12 +130,12 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     CHECK_CL_ERRORS(err);
     
 
-    printf("creating buffer %.2f GB\n", size*sizeof(long)/(1E9));
+    printf("creating buffer %.2f GB\n", size*sizeof(INT_TYPE)/(1E9));
 
-    m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(long), NULL, &err);
+    m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(INT_TYPE), NULL, &err);
     CHECK_CL_ERRORS(err);
     
-    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2 * sizeof(long), NULL, &err);
+    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2 * sizeof(INT_TYPE), NULL, &err);
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
@@ -155,7 +155,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     printf("input set\n");
 }
 
-void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds)
+void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive, INT_TYPE numds)
 {
     static double lastPrintLap = -1;
     
@@ -194,19 +194,19 @@ void OCLGPUWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, i
  * @param multiple
  * @return 
  */
-long nextMultiple(long value, long multiple)
+INT_TYPE nextMultiple(INT_TYPE value, INT_TYPE multiple)
 {
    return ((value + (multiple-1)) / multiple) * multiple; 
 }
 
-long previousMultiple(long value, long multiple)
+INT_TYPE previousMultiple(INT_TYPE value, INT_TYPE multiple)
 {
    return ((value - (multiple-1)) / multiple) * multiple; 
 }
 
 
 
-long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
+INT_TYPE OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -220,8 +220,8 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
     // this is the initial height of the pyramid
     long h = 2*m_k+1;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n); // this is the maximum possible value of the W pyramid cells
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n); // this is the maximum possible value of the W pyramid cells
 
     setCommonArgs();
 
@@ -229,28 +229,28 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
     m_final_d_r[1] = m_top; // estimated distance (now, worst case)
     m_queue->writeBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long) );
 
-    for (long r=0; r < m_k; r+= m_tileLen)
+    for (INT_TYPE r=0; r < m_k; r+= m_tileLen)
     {
-        long dup_left = r;      // this is for sure a multiple of tile len
-        long ddown_left = -r;   // this is for sure a multiple of tile len
+        INT_TYPE dup_left = r;      // this is for sure a multiple of tile len
+        INT_TYPE ddown_left = -r;   // this is for sure a multiple of tile len
         
-        long effk = nextMultiple(m_k, m_tileLen*2) + m_tileLen;
-        long eff_fd_up = nextMultiple(final_d, m_tileLen);
-        long eff_fd_down = previousMultiple(final_d, m_tileLen);
+        INT_TYPE effk = nextMultiple(m_k, m_tileLen*2) + m_tileLen;
+        INT_TYPE eff_fd_up = nextMultiple(final_d, m_tileLen);
+        INT_TYPE eff_fd_down = previousMultiple(final_d, m_tileLen);
         
-        long dup_right = eff_fd_up + (effk-r);
-        long ddown_right = eff_fd_down - (effk-r);
+        INT_TYPE dup_right = eff_fd_up + (effk-r);
+        INT_TYPE ddown_right = eff_fd_down - (effk-r);
         
         // find the next multiple of tilelen
         if ((dup_right % m_tileLen) != 0) dup_right += m_tileLen - (dup_right % m_tileLen);
         if ((ddown_right % m_tileLen) != 0) ddown_right -= m_tileLen - (ddown_right % m_tileLen);
         
-        long dup = min2(dup_left, dup_right);
-        long ddown = max2(ddown_left, ddown_right);
+        INT_TYPE dup = min2(dup_left, dup_right);
+        INT_TYPE ddown = max2(ddown_left, ddown_right);
         
-        long dstart = dup;
-        long numds = (dup - ddown)+1;             // number of ds 
-        long numwi = (((numds-1)/2)/m_tileLen)+1;   // number of workitems
+        INT_TYPE dstart = dup;
+        INT_TYPE numds = (dup - ddown)+1;             // number of ds 
+        INT_TYPE numwi = (((numds-1)/2)/m_tileLen)+1;   // number of workitems
         
         invokeKernel(r, dstart, numwi);
 
@@ -258,7 +258,7 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
-            m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+            m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(INT_TYPE));
             
             if (verbose > 1)
             {
@@ -283,7 +283,7 @@ long OCLGPUWavefrontDynamicDiamond2Cols::getDistance()
     lastpercent--;
     progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive, 0);
 
-    m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+    m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(INT_TYPE));
             
     if (verbose > 1)
     {
@@ -307,17 +307,17 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setCommonArgs()
     ret = clSetKernelArg(m_kernel, 1, sizeof(cl_mem), (void *)&m_buf_T);
     CHECK_CL_ERRORS(ret);
     
-    ret = clSetKernelArg(m_kernel, 2, sizeof(cl_long), (void *)&m_m);
+    ret = clSetKernelArg(m_kernel, 2, sizeof(CL_INT_TYPE), (void *)&m_m);
     CHECK_CL_ERRORS(ret);
 
-    ret = clSetKernelArg(m_kernel, 3, sizeof(cl_long), (void *)&m_n);
+    ret = clSetKernelArg(m_kernel, 3, sizeof(CL_INT_TYPE), (void *)&m_n);
     CHECK_CL_ERRORS(ret);
     
     //long size = 2*(2*m_k+1);
 
     long k = max2(m_m,m_n);
 
-    ret = clSetKernelArg(m_kernel, 5, sizeof(cl_long), (void *)&k);
+    ret = clSetKernelArg(m_kernel, 5, sizeof(CL_INT_TYPE), (void *)&k);
     CHECK_CL_ERRORS(ret);
     
     ret = clSetKernelArg(m_kernel, 6, sizeof(cl_mem), (void *)&m_buf_W);
@@ -330,14 +330,14 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setCommonArgs()
     CHECK_CL_ERRORS(ret);
 }
 
-void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long numds)
+void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(INT_TYPE r, INT_TYPE dstart, INT_TYPE numds)
 {
     cl_int ret;
     
-    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
+    ret = clSetKernelArg(m_kernel, 4, sizeof(CL_INT_TYPE), (void *)&r);
     CHECK_CL_ERRORS(ret);
     
-    ret = clSetKernelArg(m_kernel, 9, sizeof(cl_long), (void *)&dstart);
+    ret = clSetKernelArg(m_kernel, 9, sizeof(CL_INT_TYPE), (void *)&dstart);
     CHECK_CL_ERRORS(ret);
 
     //long k = max2(m_m,m_n);
@@ -348,7 +348,7 @@ void OCLGPUWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long 
 
 }
 
-char* OCLGPUWavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
+char* OCLGPUWavefrontDynamicDiamond2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     printf("Not implemented yet\n");
     exit(-1);
