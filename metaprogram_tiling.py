@@ -4,83 +4,66 @@ def normd(d):
     return s.replace('-', 'm')
     
 def createStruct(tl):
+    k = 2*tl +1
     print('typedef struct')
     print('{')
     
-    for r in range(tl):
-        for d in range(-r, r+1):
+    for r in range(2):
+        for d in range(k):
             print('   long r{}_d{};'.format(r, normd(d)))
             
-    for r in range(tl):
-        rr = tl - r -1
-        pr = tl + r
-        for d in range(-rr, rr+1):
-            print('   long r{}_d{};'.format(pr, normd(d)))
-
     print('} LOCAL_TILE;')
     print('#define LOCAL_TILE_PTR      LOCAL_TILE*')
+    print('#define LOCAL_TILE_PARAM    LOCAL_TILE* localW')
     print('')
     
     
 def createWriteIf(tl):
+    k = 2*tl +1
     print('void inline __attribute__((always_inline))')
-    print('writeLocalW(LOCAL_TILE_PTR localW, int d, int r, long v)')
+    print('writeLocalW(LOCAL_TILE_PARAM, int df, int rf, long v)')
     print('{')
-    
+    print('   int r = rf % 2;')
+    print('   int d = df + {};'.format(tl))
     slink1 = ''
     
-    for r in range(tl):
-        rn = tl-r-1
-        rp = tl+r
-        print('   {} if (r == {})'.format(slink1, rn))
+    for r in range(2):
+        print('   {}if (r == {})'.format(slink1, r))
         print('   {')
         slink2 = ''
-        for d in range(-rn, rn+1):
-            print('      {} if (d == {}) localW->r{}_d{} = v; '.format(slink2, d, rn, normd(d)));
-            slink2 = 'else'
+        for d in range(k):
+            print('      {}if (d == {}) localW->r{}_d{} = v; '.format(slink2, d, r, d));
+            slink2 = 'else '
         print('   }')
         
-        print('   else if (r == {})'.format(rp))
-        print('   {')
-        slink2 = ''
-        for d in range(-rn, rn+1):
-            print('      {} if (d == {}) localW->r{}_d{} = v; '.format(slink2, d, rp, normd(d)));
-            slink2 = 'else'
-        print('   }')
         
-        slink1 = 'else'
+        slink1 = 'else '
     print('}')
     print('')
     
     
 def createReadIf(tl):
+    k = 2*tl +1
         
     print('long inline __attribute__((always_inline))')
-    print('readLocalW(LOCAL_TILE_PTR localW, int d, int r)')
+    print('readLocalW(LOCAL_TILE_PARAM, int df, int rf)')
     print('{')
-    print('   long v; ')
-    
+    print('   int r = rf % 2;')
+    print('   int d = df + {};'.format(tl))
+    print('   long v;')
     slink1 = ''
-    for r in range(tl):
-        rn = tl-r-1
-        rp = tl+r
-        print('   {} if (r == {})'.format(slink1, rn))
+    
+    for r in range(2):
+        print('   {}if (r == {})'.format(slink1, r))
         print('   {')
         slink2 = ''
-        for d in range(-rn, rn+1):
-            print('      {} if (d == {}) v = localW->r{}_d{}; '.format(slink2, d, rn, normd(d)));
-            slink2 = 'else'
+        for d in range(k):
+            print('      {}if (d == {}) v = localW->r{}_d{} ; '.format(slink2, d, r, d));
+            slink2 = 'else '
         print('   }')
         
-        print('   else if (r == {})'.format(rp))
-        print('   {')
-        slink2 = ''
-        for d in range(-rn, rn+1):
-            print('      {} if (d == {}) v = localW->r{}_d{}; '.format(slink2, d, rp, normd(d)));
-            slink2 = 'else'
-        print('   }')
         
-        slink1 = 'else'
+        slink1 = 'else '
         
     print('   return v;')
     print('}')
@@ -121,7 +104,7 @@ def createWriteSwitch(tl):
 def createReadSwitch(tl):
         
     print('long inline __attribute__((always_inline))')
-    print('readLocalW(LOCAL_TILE_PTR localW, int d, int r)')
+    print('readLocalW(LOCAL_TILE_PTR localW, int df, int rf)')
     print('{')
     print('   long v; ')
     
@@ -154,9 +137,13 @@ def createReadSwitch(tl):
     
 for tl in range(10):
     print('#if TILE_LEN == {}'.format(tl))
-    createStruct(tl)
-    createWriteIf(tl)
-    createReadIf(tl)         
+    createStruct(tl-1)
+    createWriteIf(tl-1)
+    createReadIf(tl-1)         
     #createWriteSwitch(tl)
     #createReadSwitch(tl)         
     print('#endif')
+    
+    
+# EXECUTE IT WITH:
+# python3 metaprogram_tiling.py > metaprogrammed_tiles.cl
