@@ -68,9 +68,9 @@ WavefrontOriginal2Cols::~WavefrontOriginal2Cols()
 }
 
 
-void WavefrontOriginal2Cols::collectExtendStats(long e)
+void WavefrontOriginal2Cols::collectExtendStats(INT_TYPE e)
 {
-    long bin = e / EXTEND_BIN_ELEMENTS;
+    int bin = e / EXTEND_BIN_ELEMENTS;
     if (bin > 9)
         bin = 9;
     
@@ -122,25 +122,25 @@ void WavefrontOriginal2Cols::collectWReadBytes(int inc)
     m_statsWReadBytes += inc;
 }
 
-long WavefrontOriginal2Cols::extendAligned(const char* P, const char* T, long m, long n, long pi, long ti)
+INT_TYPE WavefrontOriginal2Cols::extendAligned(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
     int pbv; // P valid bytes
     int tbv; // T valid bytes
     
-    long pai;
-    long tai;
+    INT_TYPE pai;
+    INT_TYPE tai;
     
     int pbidx;
     int tbidx;
     
-    long PV;    // P value
-    long TV;    // T value
+    INT_TYPE PV;    // P value
+    INT_TYPE TV;    // T value
 
     int mbv;
     unsigned long mask;
     int neq;
     
-    long e = 0;
+    INT_TYPE e = 0;
     
     //long gt = extend(P, T, m, n, pi, ti);
     
@@ -226,9 +226,9 @@ loop:
 }
 
 
-long WavefrontOriginal2Cols::extend(const char* P, const char* T, long m, long n, long pi, long ti)
+INT_TYPE WavefrontOriginal2Cols::extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-    long e = 0;
+    INT_TYPE e = 0;
 
     while (pi < m && ti < n)
     {
@@ -250,35 +250,35 @@ long WavefrontOriginal2Cols::extend(const char* P, const char* T, long m, long n
     return e;
 }
 
-static long polarExistsInD(long d, long r)
+static INT_TYPE polarExistsInD(INT_TYPE d, INT_TYPE r)
 {
-    long  x = POLAR_D_TO_CARTESIAN_X(d,r);
-    long y = POLAR_D_TO_CARTESIAN_Y(d,r);
+    INT_TYPE x = POLAR_D_TO_CARTESIAN_X(d,r);
+    INT_TYPE y = POLAR_D_TO_CARTESIAN_Y(d,r);
 
     return ((x >= 0) && (y>=0));
 }
 
-static long polarExistsInW(long d, long r)
+static INT_TYPE polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
-    long x = POLAR_W_TO_CARTESIAN_X(d,r);
-    long y = POLAR_W_TO_CARTESIAN_Y(d,r);
+    INT_TYPE x = POLAR_W_TO_CARTESIAN_X(d,r);
+    INT_TYPE y = POLAR_W_TO_CARTESIAN_Y(d,r);
 
     return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
+void WavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     m_m = strlen(P);
     m_n = strlen(T);
     m_k = k;
 
-    long size = 2*(2*k+1);
+    INT_TYPE size = 2*(2*k+1);
 
     printf("create buffer %.2f GB\n", size*sizeof(long)/(1E9));
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -295,7 +295,7 @@ void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
 }
 
-void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+void WavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
     static double lastPrintLap = -1;
     
@@ -318,7 +318,7 @@ void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastperc
     }
 }
 
-long WavefrontOriginal2Cols::getDistance()
+INT_TYPE WavefrontOriginal2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -326,8 +326,8 @@ long WavefrontOriginal2Cols::getDistance()
     long cellsAllocated = 0;
     long cellsAlive = 0;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long ret;
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE ret;
 
     // for the first element, just execute the extend phase
     m_W[POLAR_W_TO_INDEX(0, 0)] = (gExtendAligned) ? extendAligned(m_P, m_T, m_m, m_n, 0, 0) : extend(m_P, m_T, m_m, m_n, 0, 0);
@@ -337,20 +337,20 @@ long WavefrontOriginal2Cols::getDistance()
     if (m_W[POLAR_W_TO_INDEX(0, 0)] >= m_top)
             goto end_loop;
 
-    for (long r=1; r < m_k; r++)
+    for (INT_TYPE r=1; r < m_k; r++)
     {
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
 
-        for (long d=-r; d <= r; d++)
+        for (INT_TYPE d=-r; d <= r; d++)
         {			
             // printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
-            long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-            long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-            long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+            INT_TYPE diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+            INT_TYPE left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+            INT_TYPE diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
 
             if (gStats) collectWReadBytes(sizeof(long)*3);
 
-            long compute;
+            INT_TYPE compute;
 
             if (d == 0)
                 compute = max3(diag_up, left+1, diag_down);
@@ -365,15 +365,15 @@ long WavefrontOriginal2Cols::getDistance()
                 goto end_loop;
             }
 
-            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+            INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+            INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
             if ((ex < m_n) && (ey < m_m))
             {
                 //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
 
-                long extendv = (gExtendAligned) ? extendAligned(m_P, m_T, m_m, m_n, ey, ex) : extend(m_P, m_T, m_m, m_n, ey, ex);
-                long extended = compute + extendv;
+                INT_TYPE extendv = (gExtendAligned) ? extendAligned(m_P, m_T, m_m, m_n, ey, ex) : extend(m_P, m_T, m_m, m_n, ey, ex);
+                INT_TYPE extended = compute + extendv;
 
                 m_W[POLAR_W_TO_INDEX(d, r)] = extended;
                 
@@ -425,25 +425,25 @@ const char* WavefrontOriginal2Cols::getDescription()
 class WCellPointer
 {
 public:
-	WCellPointer(long d, long r, long extend, WCellPointer* p, char type)
+	WCellPointer(INT_TYPE d, INT_TYPE r, INT_TYPE extend, WCellPointer* p, char type)
 	{
 		m_d = d;
 		m_r = r;
-                m_extend = extend;
+        m_extend = extend;
 		m_p = p;
-                count = 0;
-                m_type = type;
+        count = 0;
+        m_type = type;
                 
-                //printf("\nallocated d:%ld r:%ld\n", d, r);
-                
-                if (m_p != NULL)
-                {
-                    #pragma omp critical
-                    {
-                    m_p->count++;
-                    }
-                    //printf("\ncount d:%ld r:%ld %d\n", m_p->m_d, m_p->m_r, m_p->count);
-                }
+        //printf("\nallocated d:%ld r:%ld\n", d, r);
+        
+        if (m_p != NULL)
+        {
+            #pragma omp critical
+            {
+            m_p->count++;
+            }
+            //printf("\ncount d:%ld r:%ld %d\n", m_p->m_d, m_p->m_r, m_p->count);
+        }
 	}
         
         static void deleteChain(WCellPointer* target, long& alive)
@@ -477,9 +477,9 @@ public:
             }
         }
         
-        long m_d;   // diagonal (y axis of the W pyramid)
-        long m_r;   // distance (x axis of the W pyramid)
-        long m_extend;   // extension
+        INT_TYPE m_d;   // diagonal (y axis of the W pyramid)
+        INT_TYPE m_r;   // distance (x axis of the W pyramid)
+        INT_TYPE m_extend;   // extension
         WCellPointer* m_p;  // dependent
         char m_type;
         char count; // number of dependant cells
@@ -494,7 +494,7 @@ public:
  * @param distance
  * @return 
  */
-char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
+char* WavefrontOriginal2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     // longest worst case path goes through the table boundary 
     char* path = new char[m_m + m_n];
@@ -504,14 +504,14 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
 
     WCellPointer** selected = new WCellPointer*[2*(2*m_k+1)];
     
-    for (long k = 0; k < 2*(2*m_k+1); k++ )
+    for (INT_TYPE k = 0; k < 2*(2*m_k+1); k++ )
         selected[k] = NULL;
     
     PerformanceLap lap;
     int lastpercent = -1;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long ret;
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE ret;
 
     // for the first element, just execute the extend phase
     m_W[POLAR_W_TO_INDEX(0, 0)] = extend(m_P, m_T, m_m, m_n, 0, 0);
@@ -524,26 +524,26 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
     if (m_W[POLAR_W_TO_INDEX(0, 0)] >= m_top)
         goto end_loop;
 
-    for (long r=1; r < m_k; r++)
+    for (INT_TYPE r=1; r < m_k; r++)
     {
         progress(lap, r, lastpercent, cellsAllocated, cellsAlive);
 
         // #pragma omp parallel for schedule(static, 100)
-        for (long d=-r; d <= r; d++)
+        for (INT_TYPE d=-r; d <= r; d++)
         {			
             // printf("d=%d r=%d idx=%d\n", d+1, r-1, POLAR_W_TO_INDEX(d+1, r-1));
             int diagUpExist = polarExistsInW(d+1, r-1);
             int leftExist = polarExistsInW(d,r-1);
             int diagDownExist = polarExistsInW(d-1,r-1);
             
-            long diag_up = (diagUpExist) ? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-            long left = (leftExist) ? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-            long diag_down = (diagDownExist)? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+            INT_TYPE diag_up = (diagUpExist) ? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+            INT_TYPE left = (leftExist) ? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+            INT_TYPE diag_down = (diagDownExist)? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
 
             WCellPointer* prev;
             char type;
             
-            long compute;
+            INT_TYPE compute;
 
             if (d == 0)
             {
@@ -614,15 +614,15 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
                 //goto end_loop;
             }
 
-            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+            INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+            INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
             if ((ex < m_n) && (ey < m_m))
             {
                 //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
 
-                long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-                long extended = compute + extendv;
+                INT_TYPE extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                INT_TYPE extended = compute + extendv;
 
                 m_W[POLAR_W_TO_INDEX(d, r)] = extended;
                 selected[POLAR_W_TO_INDEX(d, 0)] = new WCellPointer(d, r, extendv, prev, type);
@@ -653,7 +653,7 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
             goto end_loop;
         
         // now purge unused links
-        for (long d=-r; d <= r; d++)
+        for (INT_TYPE d=-r; d <= r; d++)
         {
             if (selected[POLAR_W_TO_INDEX(d, 1)] == NULL)
                 continue;
@@ -663,7 +663,7 @@ char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
         }
         
         // now copy from current to previous
-        for (long d=-r; d <= r; d++)
+        for (INT_TYPE d=-r; d <= r; d++)
         {
             selected[POLAR_W_TO_INDEX(d, 1)] = selected[POLAR_W_TO_INDEX(d, 0)];
         }
@@ -683,7 +683,7 @@ end_loop:
     {
         WCellPointer* pp = p->m_p;
         
-        for (long j = 0; j < p->m_extend; j++)
+        for (INT_TYPE j = 0; j < p->m_extend; j++)
             path[i++] = '|';
         
         if (pp != NULL)
@@ -694,7 +694,7 @@ end_loop:
     path[i] = 0;
     
     // now reverse
-    long k=i-1;
+    INT_TYPE k=i-1;
 
     for (int i = 0; i < k/2; i++)
     {
