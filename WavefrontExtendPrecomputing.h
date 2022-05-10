@@ -29,23 +29,23 @@ public:
     WavefrontExtendPrecomputing();
     virtual ~WavefrontExtendPrecomputing();
 
-    void setInput(const char* P, const char* T, long k);
+    void setInput(const char* P, const char* T, INT_TYPE k);
     void precomputeExtend();
-    long getDistance();
-    char* getAlignmentPath(long* distance);
+    INT_TYPE getDistance();
+    char* getAlignmentPath(INT_TYPE* distance);
     const char* getDescription(); 
 
 
-    int polarExistsInD(int d, int r);
-    int polarExistsInW(int d, int r);
+    int polarExistsInD(INT_TYPE d, INT_TYPE r);
+    int polarExistsInW(INT_TYPE d, INT_TYPE r);
 
-    int* m_W;
+    INT_TYPE* m_W;
     long m_size_W;
-    int* m_E;
+    INT_TYPE* m_E;
     long m_size_E;
 
-    long m_k;
-    long m_top;
+    INT_TYPE m_k;
+    INT_TYPE m_top;
 };
 
 #endif

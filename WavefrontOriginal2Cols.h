@@ -29,14 +29,14 @@ public:
     WavefrontOriginal2Cols();
     virtual ~WavefrontOriginal2Cols();
 
-    void setInput(const char* P, const char* T, long k);
-    long getDistance();
-    char* getAlignmentPath(long* distance);
+    void setInput(const char* P, const char* T, INT_TYPE k);
+    INT_TYPE getDistance();
+    char* getAlignmentPath(INT_TYPE* distance);
     const char* getDescription(); 
-    long extendAligned(const char* P, const char* T, long m, long n, long pi, long ti);
-    long extend(const char* P, const char* T, long m, long n, long pi, long ti);
+    INT_TYPE extendAligned(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti);
+    INT_TYPE extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti);
 
-    void collectExtendStats(long e);
+    void collectExtendStats(INT_TYPE e);
     void collectPTReadBytes(int inc);
     void collectWWriteBytes(int inc);
     void collectWReadBytes(int inc);
@@ -44,12 +44,12 @@ public:
     void printStats();
     
 protected:
-    void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
+    void progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive);
 
-    long* m_W;
+    INT_TYPE* m_W;
     
-    long m_k;
-    long m_top;
+    INT_TYPE m_k;
+    INT_TYPE m_top;
     
     // stats
     long m_statsExtendBins[10];

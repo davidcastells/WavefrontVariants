@@ -29,15 +29,15 @@ public:
     WavefrontOriginal();
     virtual ~WavefrontOriginal();
 
-    void setInput(const char* P, const char* T, long k);
-    long getDistance();
-    char* getAlignmentPath(long* distance);
+    void setInput(const char* P, const char* T, INT_TYPE k);
+    INT_TYPE getDistance();
+    char* getAlignmentPath(INT_TYPE* distance);
     const char* getDescription(); 
 
-    long* m_W;
+    INT_TYPE* m_W;
     
-    long m_k;
-    long m_top;
+    INT_TYPE m_k;
+    INT_TYPE m_top;
 };
 
 #endif
