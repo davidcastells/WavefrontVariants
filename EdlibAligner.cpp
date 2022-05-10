@@ -15,7 +15,7 @@ EdlibAligner::~EdlibAligner()
 {
 }
 
-void EdlibAligner::setInput(const char* P, const char* T, long k)
+void EdlibAligner::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -27,7 +27,7 @@ void EdlibAligner::setInput(const char* P, const char* T, long k)
 	// printf("input set\n");
 }
 
-long EdlibAligner::getDistance()
+INT_TYPE EdlibAligner::getDistance()
 {   
     EdlibAlignResult ret;
 	EdlibAlignConfig alignConfig = edlibNewAlignConfig(m_k, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
@@ -35,7 +35,7 @@ long EdlibAligner::getDistance()
     return ret.editDistance;        
 }
 
-char* EdlibAligner::getAlignmentPath(long* distance)
+char* EdlibAligner::getAlignmentPath(INT_TYPE* distance)
 {
     printf("Not implemented\n");
     exit(-1);
