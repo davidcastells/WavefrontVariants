@@ -113,10 +113,10 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 }
 
 __forceinline__ __device__
-long extendUnaligned(GLOBAL_STORE const char* P, 
-            GLOBAL_STORE const char* T, long m, long n, long pi, long ti)
+INT_TYPE extendUnaligned(GLOBAL_STORE const char* P, 
+            GLOBAL_STORE const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-    long e = 0;
+    INT_TYPE e = 0;
 
     while (pi < m && ti < n)
     {
@@ -138,26 +138,26 @@ long extendUnaligned(GLOBAL_STORE const char* P,
 #define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
  
 __forceinline__ __device__
-long extendAligned(GLOBAL_STORE const char* P, 
-        GLOBAL_STORE const char* T, long m, long n, long pi, long ti)
+INT_TYPE extendAligned(GLOBAL_STORE const char* P, 
+        GLOBAL_STORE const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
     int pbv; // P valid bytes
     int tbv; // T valid bytes
     
-    long pai;
-    long tai;
+    INT_TYPE pai;
+    INT_TYPE tai;
     
     int pbidx;
     int tbidx;
     
-    long PV;    // P value
-    long TV;    // T value
+    INT_TYPE PV;    // P value
+    INT_TYPE TV;    // T value
 
     int mbv;
-    unsigned long mask;
+    unsigned INT_TYPE mask;
     int neq;
     
-    long e = 0;
+    INT_TYPE e = 0;
     
     //long gt = extend(P, T, m, n, pi, ti);
     
@@ -165,8 +165,8 @@ loop:
     pai = pi & ALIGN_MASK;
     tai = ti & ALIGN_MASK;
     
-    PV = *(GLOBAL_STORE long*)(&P[pai]);
-    TV = *(GLOBAL_STORE long*)(&T[tai]);
+    PV = *(GLOBAL_STORE INT_TYPE*)(&P[pai]);
+    TV = *(GLOBAL_STORE INT_TYPE*)(&T[tai]);
     
 //    printf("pi: %ld ti: %ld pai: %ld tai: %ld \n", pi, ti, pai, tai);
 //    printf("PV = 0x%016lX\n", PV);
@@ -243,8 +243,8 @@ loop:
 
 
 __forceinline__ __device__
-long cuda_extend(GLOBAL_STORE const char* P,
-        GLOBAL_STORE const char* T, long m, long n, long pi, long ti)
+INT_TYPE cuda_extend(GLOBAL_STORE const char* P,
+        GLOBAL_STORE const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {    
 #ifdef EXTEND_ALIGNED
         return extendAligned(P, T, m, n, pi, ti);
@@ -254,10 +254,10 @@ long cuda_extend(GLOBAL_STORE const char* P,
 }
 
 __forceinline__ __device__
-int cuda_polarExistsInW(long d, long r)
+int cuda_polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
-    long x = POLAR_W_TO_CARTESIAN_X(d,r);
-    long y = POLAR_W_TO_CARTESIAN_Y(d,r);
+    INT_TYPE x = POLAR_W_TO_CARTESIAN_X(d,r);
+    INT_TYPE y = POLAR_W_TO_CARTESIAN_Y(d,r);
 	
     return ((x >= 0) && (y >= 0));
 }
@@ -268,8 +268,8 @@ int cuda_polarExistsInW(long d, long r)
 
 
 __forceinline__ __device__
-void writeToW(GLOBAL_STORE long* m_W,
-        LOCAL_STORE long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+void writeToW(GLOBAL_STORE INT_TYPE* m_W,
+        LOCAL_STORE INT_TYPE* localW, INT_TYPE d, INT_TYPE r, INT_TYPE v, INT_TYPE m_k, int tileLen, int ld, int lr)
 {    
     int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
 
@@ -290,8 +290,8 @@ void writeToW(GLOBAL_STORE long* m_W,
 }
 
 __forceinline__ __device__
-long readFromW(GLOBAL_STORE long* m_W,
-        LOCAL_STORE long* localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+INT_TYPE readFromW(GLOBAL_STORE INT_TYPE* m_W,
+        LOCAL_STORE INT_TYPE* localW, INT_TYPE d, INT_TYPE r, INT_TYPE m_k, int tileLen, int ld, int lr)
 {
     int isInLocal = isInLocalBlock(ld, lr, tileLen);
     
@@ -311,7 +311,7 @@ long readFromW(GLOBAL_STORE long* m_W,
     }
     else
     {
-        long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+        INT_TYPE gv = m_W[POLAR_W_TO_INDEX(d, r)];
         
 #ifdef DEBUG
         printf("RD(%ld, %ld, %d) ->  = %ld\n", 
@@ -324,21 +324,21 @@ long readFromW(GLOBAL_STORE long* m_W,
 __forceinline__ __device__
 void processCell(GLOBAL_STORE char* P, 
         GLOBAL_STORE char* T, 
-        long m_m, 
-        long m_n,
-        long m_k, 
-        GLOBAL_STORE long* m_W,
-        GLOBAL_STORE long* p_final_d_r,
-        long d,
-        long r,
+        INT_TYPE m_m, 
+        INT_TYPE m_n,
+        INT_TYPE m_k, 
+        GLOBAL_STORE INT_TYPE* m_W,
+        GLOBAL_STORE INT_TYPE* p_final_d_r,
+        INT_TYPE d,
+        INT_TYPE r,
         int tileLen,
-        LOCAL_STORE long* localW,
+        LOCAL_STORE INT_TYPE* localW,
         int ld,
         int lr,
         int* doRun)
 {
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n);
 
     // early exit for useless work items
     if (!cuda_polarExistsInW(d,r))
@@ -354,11 +354,11 @@ void processCell(GLOBAL_STORE char* P,
     }
     else
     {
-        long diag_up = (cuda_polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1) : 0;
-        long left = (cuda_polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;
-        long diag_down = (cuda_polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;
+        INT_TYPE diag_up = (cuda_polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1) : 0;
+        INT_TYPE left = (cuda_polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;
+        INT_TYPE diag_down = (cuda_polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;
 
-        long compute;
+        INT_TYPE compute;
 
         if (d == 0)
             compute = max3(diag_up, left+1, diag_down);
@@ -381,13 +381,13 @@ void processCell(GLOBAL_STORE char* P,
             }
         }
 
-        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+        INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+        INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
         if ((ex < m_n) && (ey < m_m))
         {
-            long extendv = cuda_extend(P, T, m_m, m_n, ey, ex);
-            long extended = compute + extendv;
+            INT_TYPE extendv = cuda_extend(P, T, m_m, m_n, ey, ex);
+            INT_TYPE extended = compute + extendv;
 
             WRITE_W(d, r, extended);
 
@@ -436,22 +436,22 @@ __global__
 void wfdd2cols(
         GLOBAL_STORE char* __restrict__ P, 
         GLOBAL_STORE char* __restrict__ T, 
-        long m_m, 
-        long m_n, 
-        long r0, 
-        long m_k,  
-        GLOBAL_STORE long* __restrict__ m_W,
-        GLOBAL_STORE long* __restrict__ p_final_d_r,
+        INT_TYPE m_m, 
+        INT_TYPE m_n, 
+        INT_TYPE r0, 
+        INT_TYPE m_k,  
+        GLOBAL_STORE INT_TYPE* __restrict__ m_W,
+        GLOBAL_STORE INT_TYPE* __restrict__ p_final_d_r,
         int tileLen,
-        long dstart)
+        INT_TYPE dstart)
 {
-    __shared__ long localW[2*TILE_LEN_MAX*TILE_LEN_MAX];
+    __shared__ INT_TYPE localW[2*TILE_LEN_MAX*TILE_LEN_MAX];
 
     size_t gid = blockIdx.x; // get_global_id(0);
 
     //long d = gid - (r-1);
-    long d0 = dstart - gid*2*tileLen; 
-    long m_top = max2(m_m,m_n);
+    INT_TYPE d0 = dstart - gid*2*tileLen; 
+    INT_TYPE m_top = max2(m_m,m_n);
     //long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     int doRun = 1;
     
@@ -510,7 +510,7 @@ CUDAWavefrontDynamicDiamond2Cols::~CUDAWavefrontDynamicDiamond2Cols()
 
 
 
-void CUDAWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
+void CUDAWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
@@ -524,7 +524,7 @@ void CUDAWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, lo
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -539,10 +539,10 @@ void CUDAWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, lo
     cudaMalloc(&m_buf_P,  m_m * sizeof(char));
     cudaMalloc(&m_buf_T, m_n * sizeof(char));
 
-    printf("creating buffer %.2f GB\n", size*sizeof(long)/(1E9));
+    printf("creating buffer %.2f GB\n", size*sizeof(INT_TYPE)/(1E9));
 
-    cudaMalloc(&m_buf_W, size * sizeof(long));
-    cudaMalloc(&m_buf_final_d_r, 2 * sizeof(long));
+    cudaMalloc(&m_buf_W, size * sizeof(INT_TYPE));
+    cudaMalloc(&m_buf_final_d_r, 2 * sizeof(INT_TYPE));
     
 //    auto ocl = OCLUtils::getInstance();
 //        
@@ -561,7 +561,7 @@ void CUDAWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, lo
     printf("input set\n");
 }
 
-void CUDAWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive, long numds)
+void CUDAWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive, INT_TYPE numds)
 {
     static double lastPrintLap = -1;
     
@@ -576,15 +576,18 @@ void CUDAWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int
 //    double estimated = (elapsed / r) * (m_k);
 //    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
     // square model
-    double estimated = (elapsed / (r*r)) * (m_k*m_k);
-    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
+    double rd = r;
+    double kd = m_k;
+    double estimated = (elapsed / (rd*rd)) * (kd*kd);
+    int percent = (rd*rd*100.0*DECIMALS_PERCENT/(kd*kd));
     
     if (elapsed > (lastPrintLap + printPeriod))
     {
         printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("r %ld/%ld %.2f%% (ds: %ld) elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT), numds , (int) elapsed, (int) estimated );
-    
+        //printf("r %ld/%ld %.2f%% (ds: %ld) elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT), numds , (int) elapsed, (int) estimated );
+        printf("r %d/%d %.2f%% (ds: %d) elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT), numds , (int) elapsed, (int) estimated );
+
         fflush(stdout);
         lastpercent = percent;
         lastPrintLap = elapsed;
@@ -600,19 +603,19 @@ void CUDAWavefrontDynamicDiamond2Cols::progress(PerformanceLap& lap, long r, int
  * @param multiple
  * @return 
  */
-static long nextMultiple(long value, long multiple)
+static INT_TYPE nextMultiple(INT_TYPE value, INT_TYPE multiple)
 {
    return ((value + (multiple-1)) / multiple) * multiple; 
 }
 
-static long previousMultiple(long value, long multiple)
+static INT_TYPE previousMultiple(INT_TYPE value, INT_TYPE multiple)
 {
    return ((value - (multiple-1)) / multiple) * multiple; 
 }
 
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
 
-long CUDAWavefrontDynamicDiamond2Cols::getDistance()
+INT_TYPE CUDAWavefrontDynamicDiamond2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -623,10 +626,10 @@ long CUDAWavefrontDynamicDiamond2Cols::getDistance()
     cudaMemcpy(m_buf_T, m_T, m_n * sizeof(char), cudaMemcpyHostToDevice);
     
     // this is the initial height of the pyramid
-    long h = 2*m_k+1;
+    INT_TYPE h = 2*m_k+1;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n); // this is the maximum possible value of the W pyramid cells
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n); // this is the maximum possible value of the W pyramid cells
 
     setCommonArgs();
 
@@ -635,28 +638,28 @@ long CUDAWavefrontDynamicDiamond2Cols::getDistance()
     cudaMemcpy(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long), cudaMemcpyHostToDevice );
     
 
-    for (long r=0; r < m_k; r+= m_tileLen)
+    for (INT_TYPE r=0; r < m_k; r+= m_tileLen)
     {
-        long dup_left = r;      // this is for sure a multiple of tile len
-        long ddown_left = -r;   // this is for sure a multiple of tile len
+        INT_TYPE dup_left = r;      // this is for sure a multiple of tile len
+        INT_TYPE ddown_left = -r;   // this is for sure a multiple of tile len
         
-        long effk = nextMultiple(m_k, m_tileLen*2) + m_tileLen;
-        long eff_fd_up = nextMultiple(final_d, m_tileLen);
-        long eff_fd_down = previousMultiple(final_d, m_tileLen);
+        INT_TYPE effk = nextMultiple(m_k, m_tileLen*2) + m_tileLen;
+        INT_TYPE eff_fd_up = nextMultiple(final_d, m_tileLen);
+        INT_TYPE eff_fd_down = previousMultiple(final_d, m_tileLen);
         
-        long dup_right = eff_fd_up + (effk-r);
-        long ddown_right = eff_fd_down - (effk-r);
+        INT_TYPE dup_right = eff_fd_up + (effk-r);
+        INT_TYPE ddown_right = eff_fd_down - (effk-r);
         
         // find the next multiple of tilelen
         if ((dup_right % m_tileLen) != 0) dup_right += m_tileLen - (dup_right % m_tileLen);
         if ((ddown_right % m_tileLen) != 0) ddown_right -= m_tileLen - (ddown_right % m_tileLen);
         
-        long dup = min2(dup_left, dup_right);
-        long ddown = max2(ddown_left, ddown_right);
+        INT_TYPE dup = min2(dup_left, dup_right);
+        INT_TYPE ddown = max2(ddown_left, ddown_right);
         
-        long dstart = dup;
-        long numds = (dup - ddown)+1;             // number of ds 
-        long numwi = (((numds-1)/2)/m_tileLen)+1;   // number of workitems
+        INT_TYPE dstart = dup;
+        INT_TYPE numds = (dup - ddown)+1;             // number of ds 
+        INT_TYPE numwi = (((numds-1)/2)/m_tileLen)+1;   // number of workitems
         
         invokeKernel(r, dstart, numwi);
 
@@ -668,9 +671,9 @@ long CUDAWavefrontDynamicDiamond2Cols::getDistance()
             
             if (verbose > 1)
             {
-                printf("Check to continue\nTop: %ld\n", m_top);
-                printf("Fur. reaching point: %ld\n", m_final_d_r[0]);
-                printf("Edit distance: %ld\n", m_final_d_r[1]);
+                printf("Check to continue\nTop: %d\n", m_top);
+                printf("Fur. reaching point: %d\n", m_final_d_r[0]);
+                printf("Edit distance: %d\n", m_final_d_r[1]);
             }
             
             if (m_final_d_r[0] >= m_top)
@@ -693,9 +696,9 @@ long CUDAWavefrontDynamicDiamond2Cols::getDistance()
             
     if (verbose > 1)
     {
-        printf("Check to continue\nTop: %ld\n", m_top);
-        printf("Fur. reaching point: %ld\n", m_final_d_r[0]);
-        printf("Edit distance: %ld\n", m_final_d_r[1]);
+        printf("Check to continue\nTop: %d\n", m_top);
+        printf("Fur. reaching point: %d\n", m_final_d_r[0]);
+        printf("Edit distance: %d\n", m_final_d_r[1]);
     }
 
     if (m_final_d_r[0] >= m_top)
@@ -708,15 +711,15 @@ void CUDAWavefrontDynamicDiamond2Cols::setCommonArgs()
 {
 }
 
-void CUDAWavefrontDynamicDiamond2Cols::invokeKernel(long r, long dstart, long numds)
+void CUDAWavefrontDynamicDiamond2Cols::invokeKernel(INT_TYPE r, INT_TYPE dstart, INT_TYPE numds)
 {
-    long k = max2(m_m,m_n);
+    INT_TYPE k = max2(m_m,m_n);
 
     wfdd2cols<<<numds, gWorkgroupSize>>>(m_buf_P, m_buf_T, m_m, m_n, r, k, m_buf_W, m_buf_final_d_r, m_tileLen, dstart);
 
 }
 
-char* CUDAWavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
+char* CUDAWavefrontDynamicDiamond2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     printf("Not implemented yet\n");
     exit(-1);

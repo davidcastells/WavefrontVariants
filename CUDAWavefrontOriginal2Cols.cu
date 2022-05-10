@@ -66,6 +66,11 @@
 
 #define POLAR_LOCAL_W_TO_INDEX(d, r, tl) ((r) >= (tl))? (2*((r)-(tl))*(tl)) - ((r)-(tl))*((r)-(tl)) + (2*(tl)-(r)-1) + (d) + (tl)*(tl) : ((r)*(r)+(r)+d)
 
+// WARNING !!!! This is harcoded here, where should it be ?
+// WARNING !!!! This is harcoded here, where should it be ?
+// WARNING !!!! This is harcoded here, where should it be ?
+// WARNING !!!! This is harcoded here, where should it be ?
+#define SHARED_STORE
 
 #ifdef GLOBAL_STORE
     #define LOCAL_TILE_TYPE     __private
@@ -99,7 +104,7 @@
 
 #ifdef SHARED_STORE
     #define LOCAL_TILE_TYPE     __shared__
-    #define LOCAL_TILE_PTR      long*
+    #define LOCAL_TILE_PTR      INT_TYPE*
 #endif
 
 
@@ -112,7 +117,7 @@ extern int gEnqueuedInvocations;
 extern int gWorkgroupSize;
 
 __forceinline__ __device__
-long extend(const char* P, const char* T, long m, long n, long pi, long ti)
+INT_TYPE extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
     long e = 0;
 
@@ -129,7 +134,7 @@ long extend(const char* P, const char* T, long m, long n, long pi, long ti)
 }
 
 __forceinline__ __device__
-int polarExistsInW(long d, long r)
+int polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
     int ret =  abs(d) <= r;
     //printf("polar exist in W (%ld, %ld) = %d\n", d, r, ret);
@@ -142,8 +147,8 @@ int isInLocalBlock(int ld, int lr)
     if (lr < 0) return 0;
     if (lr >= 2*TILE_LEN) return 0;
     
-    int dec_lr = 2*TILE_LEN -1 - lr;
-    int min_lr = min(lr, dec_lr);
+    INT_TYPE dec_lr = 2*TILE_LEN -1 - lr;
+    INT_TYPE min_lr = min(lr, dec_lr);
     
     if (abs(ld) > min_lr) return 0;
     
@@ -166,7 +171,7 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 
 #ifdef REGISTER_STORE
     void inline __attribute__((always_inline)) 
-    writeLocalW(LOCAL_TILE_PTR localW, long d, long r, long v)
+    writeLocalW(LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r, INT_TYPE v)
     {
         //printf("local_WR(%ld,%ld) = %ld\n", d, r, v);
         // max 8
@@ -200,7 +205,7 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
     }
 
     void inline __attribute__((always_inline)) 
-    writeToW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+    writeToW(INT_TYPE* m_W, LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r, INT_TYPE v, INT_TYPE m_k, int tileLen, int ld, int lr)
     {    
         writeLocalW(localW, ld, lr, v);
         //int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
@@ -221,14 +226,14 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
     }
 #else
     __forceinline__ __device__
-    long readFromW(long* m_W, LOCAL_TILE_PTR localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+    INT_TYPE readFromW(INT_TYPE* m_W, LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r, INT_TYPE m_k, int tileLen, int ld, int lr)
     {
         int isInLocal = isInLocalBlock(ld, lr);
         
         if (isInLocal)
         {
             int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
-            long lv = localW[lidx];
+            INT_TYPE lv = localW[lidx];
 
     #ifdef DEBUG
             printf("RD(%ld, %ld, %d) -> local RD(%d, %d, %d) -> RD idx(%d) = %ld\n", d, r, tileLen, ld, lr, tileLen, lidx, lv);
@@ -238,7 +243,7 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
         }
         else
         {
-            long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+            INT_TYPE gv = m_W[POLAR_W_TO_INDEX(d, r)];
             
     #ifdef DEBUG
             printf("RD(%ld, %ld, %d) ->  = %ld\n", d, r, tileLen, gv);
@@ -250,10 +255,10 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 
 
 #ifdef REGISTER_STORE
-    long inline __attribute__((always_inline)) 
-    readLocalW(LOCAL_TILE_PTR localW, long d, long r)
+    INT_TYPE inline __attribute__((always_inline)) 
+    readLocalW(LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r)
     {
-        long v; 
+        INT_TYPE v; 
         
         // max 8
         switch ((r<<3)|(d+2))
@@ -285,14 +290,14 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
         return v;
     }
     
-    long inline __attribute__((always_inline)) 
-    readFromW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+    INT_TYPE inline __attribute__((always_inline)) 
+    readFromW(INT_TYPE* m_W, LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r, INT_TYPE m_k, int tileLen, int ld, int lr)
     {
         int isInLocal = isInLocalBlock(ld, lr);
         
         if (isInLocal)
         {
-            long lv = readLocalW(localW, ld, lr);
+            INT_TYPE lv = readLocalW(localW, ld, lr);
             
 
     #ifdef DEBUG
@@ -306,7 +311,7 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
         }
         else
         {
-            long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+            INT_TYPE gv = m_W[POLAR_W_TO_INDEX(d, r)];
             
     #ifdef DEBUG
             printf("RD(%ld, %ld, %d) ->  = %ld\n", 
@@ -317,7 +322,7 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
     }
 #else
     __forceinline__ __device__
-    void writeToW(long* m_W, long* localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+    void writeToW(INT_TYPE* m_W, INT_TYPE* localW, INT_TYPE d, INT_TYPE r, INT_TYPE v, INT_TYPE m_k, int tileLen, int ld, int lr)
     {    
         int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
 
@@ -342,20 +347,20 @@ int isInLocalBlockBoundary(int ld, int lr, int tileLen)
 __forceinline__ __device__
 void processCell(char* P, 
         char* T, 
-        long m_m, 
-        long m_n,
-        long m_k, 
-        long* m_W,
-        long* p_final_d_r,
-        long d,
-        long r,
+        INT_TYPE m_m, 
+        INT_TYPE m_n,
+        INT_TYPE m_k, 
+        INT_TYPE* m_W,
+        INT_TYPE* p_final_d_r,
+        INT_TYPE d,
+        INT_TYPE r,
         int tileLen,
         LOCAL_TILE_PTR localW,
         int ld,
         int lr,
         int* doRun)
 {
-    long m_top = max2(m_m,m_n);
+    INT_TYPE m_top = max2(m_m,m_n);
 
     // we already reached the final point in previous invocations
     if (p_final_d_r[0] >= m_top)
@@ -364,7 +369,7 @@ void processCell(char* P,
         return;
     }
        
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
 
     // early exit for useless work items
     if (!polarExistsInW(d,r))
@@ -375,7 +380,7 @@ void processCell(char* P,
         if (d == 0)
         {
             // initial case
-            long extended = extend(P, T, m_m, m_n, 0, 0);
+            INT_TYPE extended = extend(P, T, m_m, m_n, 0, 0);
             WRITE_W(d, r, extended);
             
             if ((d == final_d) && extended >= m_top)
@@ -392,13 +397,13 @@ void processCell(char* P,
     }
     else
     {
-        long diag_up = (polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1)  : 0;   // m_W[POLAR_W_TO_INDEX(d+1, r-1)] 
-        long left = (polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;              // m_W[POLAR_W_TO_INDEX(d, r-1)]
-        long diag_down = (polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;   // m_W[POLAR_W_TO_INDEX(d-1, r-1)]  
+        INT_TYPE diag_up = (polarExistsInW(d+1, r-1))? READ_W(d+1, r-1, ld+1, lr-1)  : 0;   // m_W[POLAR_W_TO_INDEX(d+1, r-1)] 
+        INT_TYPE left = (polarExistsInW(d,r-1))? READ_W(d, r-1, ld, lr-1) : 0;              // m_W[POLAR_W_TO_INDEX(d, r-1)]
+        INT_TYPE diag_down = (polarExistsInW(d-1,r-1))? READ_W(d-1, r-1, ld-1, lr-1) : 0;   // m_W[POLAR_W_TO_INDEX(d-1, r-1)]  
 
         //printf("u|l|r = %ld|%ld|%ld\n",  diag_up, left, diag_down);
 
-        long compute;
+        INT_TYPE compute;
 
         if (d == 0)
             compute = max3(diag_up, left+1, diag_down);
@@ -419,13 +424,13 @@ void processCell(char* P,
             return;
         }
 
-        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+        INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+        INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
         if ((ex < m_n) && (ey < m_m))
         {
-            long extendv = extend(P, T, m_m, m_n, ey, ex);
-            long extended = compute + extendv;
+            INT_TYPE extendv = extend(P, T, m_m, m_n, ey, ex);
+            INT_TYPE extended = compute + extendv;
 
             // m_W[POLAR_W_TO_INDEX(d, r)] = extended;
             WRITE_W(d, r, extended);
@@ -455,16 +460,16 @@ __global__
 void wfo2cols(
         char* P, 
         char* T, 
-        long m_m, 
-        long m_n, 
-        long r0, 
-        long m_k,  
-        long* m_W,
-        long* p_final_d_r,
+        INT_TYPE m_m, 
+        INT_TYPE m_n, 
+        INT_TYPE r0, 
+        INT_TYPE m_k,  
+        INT_TYPE* m_W,
+        INT_TYPE* p_final_d_r,
         int tileLen)
 {
 #ifdef GLOBAL_STORE
-    LOCAL_TILE_TYPE long localW[2*TILE_LEN*TILE_LEN];    
+    LOCAL_TILE_TYPE INT_TYPE localW[2*TILE_LEN*TILE_LEN];    
 #endif
 
 #ifdef REGISTER_STORE
@@ -472,7 +477,7 @@ void wfo2cols(
 #endif
     
 #ifdef SHARED_STORE
-    LOCAL_TILE_TYPE long shared_localW[WORKGROUP_SIZE][2*TILE_LEN*TILE_LEN];
+    LOCAL_TILE_TYPE INT_TYPE shared_localW[WORKGROUP_SIZE][2*TILE_LEN*TILE_LEN];
     //size_t lid = get_local_id(0);
     size_t lid = threadIdx.x;
     LOCAL_TILE_PTR localW = &shared_localW[lid][0];
@@ -482,8 +487,8 @@ void wfo2cols(
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     
     
-    long d0 = r0 - gid*2*tileLen; 
-    long m_top = max2(m_m,m_n);
+    INT_TYPE d0 = r0 - gid*2*tileLen; 
+    INT_TYPE m_top = max2(m_m,m_n);
 
     // printf("\n[POCL] d0=%ld r0=%ld  cv=%ld\n", d0, r0, p_final_d_r[0]);
 
@@ -530,7 +535,7 @@ CUDAWavefrontOriginal2Cols::~CUDAWavefrontOriginal2Cols()
         delete [] m_W;
 }
 
-void CUDAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
+void CUDAWavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
@@ -550,7 +555,7 @@ void CUDAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -564,16 +569,16 @@ void CUDAWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
     cudaMalloc(&m_buf_P,  m_m * sizeof(char));
     cudaMalloc(&m_buf_T, m_n * sizeof(char));
 
-    printf("creating buffer %.2f GB\n", size*sizeof(long)/(1E9));
+    printf("creating buffer %.2f GB\n", size*sizeof(INT_TYPE)/(1E9));
 
-    cudaMalloc(&m_buf_W, size * sizeof(long));
-    cudaMalloc(&m_buf_final_d_r, 2 * sizeof(long));
+    cudaMalloc(&m_buf_W, size * sizeof(INT_TYPE));
+    cudaMalloc(&m_buf_final_d_r, 2 * sizeof(INT_TYPE));
     
     
     printf("input set\n");
 }
 
-void CUDAWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+void CUDAWavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
 #define DECIMALS_PERCENT    1000
     if (!verbose)
@@ -611,7 +616,7 @@ static long previousMultiple(long value, long multiple)
 
 #define NUMBER_OF_INVOCATIONS_PER_READ gEnqueuedInvocations
 
-long CUDAWavefrontOriginal2Cols::getDistance()
+INT_TYPE CUDAWavefrontOriginal2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -621,23 +626,23 @@ long CUDAWavefrontOriginal2Cols::getDistance()
     cudaMemcpy(m_buf_P, m_P, m_m * sizeof(char), cudaMemcpyHostToDevice);
     cudaMemcpy(m_buf_T, m_T, m_n * sizeof(char), cudaMemcpyHostToDevice);
     
-    long h = 2*m_k+1;
+    INT_TYPE h = 2*m_k+1;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n);
 
     setCommonArgs();
 
     m_final_d_r[0] = 0;     // furthest reaching point
     m_final_d_r[1] = m_top; // estimated distance (now, worst case)
     
-    cudaMemcpy(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long), cudaMemcpyHostToDevice );
+    cudaMemcpy(m_buf_final_d_r, m_final_d_r, 2 * sizeof(INT_TYPE), cudaMemcpyHostToDevice );
     
 
     if (gMeasureIterationTime)
         printf("r,time\n");
         
-    for (long r=0; r < m_k; r+= m_tileLen)
+    for (INT_TYPE r=0; r < m_k; r+= m_tileLen)
     {
         invokeKernel(r);
 
@@ -654,7 +659,7 @@ long CUDAWavefrontOriginal2Cols::getDistance()
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
-            cudaMemcpy(m_final_d_r, m_buf_final_d_r, 2 * sizeof(long), cudaMemcpyDeviceToHost);
+            cudaMemcpy(m_final_d_r, m_buf_final_d_r, 2 * sizeof(INT_TYPE), cudaMemcpyDeviceToHost);
             
             if (m_final_d_r[0] >= m_top)
                 return m_final_d_r[1];
@@ -671,20 +676,20 @@ void CUDAWavefrontOriginal2Cols::setCommonArgs()
 {
 }
 
-void CUDAWavefrontOriginal2Cols::invokeKernel(long r)
+void CUDAWavefrontOriginal2Cols::invokeKernel(INT_TYPE r)
 {
-    long k = max2(m_m,m_n);
+    INT_TYPE k = max2(m_m,m_n);
     
-    long threads = (r/m_tileLen)+1;
+    INT_TYPE threads = (r/m_tileLen)+1;
     
-    long blocks = (threads + gWorkgroupSize - 1) / gWorkgroupSize;
-    long threadsPerBlock = gWorkgroupSize;
+    INT_TYPE blocks = (threads + gWorkgroupSize - 1) / gWorkgroupSize;
+    INT_TYPE threadsPerBlock = gWorkgroupSize;
      
     wfo2cols<<<blocks, threadsPerBlock>>>(m_buf_P, m_buf_T, m_m, m_n, r, k, m_buf_W, m_buf_final_d_r, m_tileLen);
 
 }
 
-char* CUDAWavefrontOriginal2Cols::getAlignmentPath(long* distance)
+char* CUDAWavefrontOriginal2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     printf("Not implemented yet\n");
     exit(-1);
