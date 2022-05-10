@@ -38,14 +38,18 @@
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
 //#define POLAR_LOCAL_W_TO_INDEX(d, r, tl) ((r) >= (tl))? (2*((r)-(tl))*(tl)) - ((r)-(tl))*((r)-(tl)) + (2*(tl)-(r)-1) + (d) + (tl)*(tl) : ((r)*(r)+(r)+d)
-#define POLAR_LOCAL_W_TO_INDEX(d, r)    ((r) >= TILE_LEN)? (2*((r)-TILE_LEN)*TILE_LEN) - ((r)-TILE_LEN)*((r)-TILE_LEN) + (2*TILE_LEN-(r)-1) + (d) + TILE_LEN*TILE_LEN : ((r)*(r)+(r)+d)
+//#define POLAR_LOCAL_W_TO_INDEX(d, r)    ((r) >= TILE_LEN)? (2*((r)-TILE_LEN)*TILE_LEN) - ((r)-TILE_LEN)*((r)-TILE_LEN) + (2*TILE_LEN-(r)-1) + (d) + TILE_LEN*TILE_LEN : ((r)*(r)+(r)+d)
+
+#define POLAR_LOCAL_W_TO_INDEX(d, r)          ((d)+(TILE_LEN-1) + (((r)%2) * (2*(TILE_LEN-1)+1)))
+
 
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
 #ifdef GLOBAL_STORE
     #define LOCAL_TILE_TYPE     __private
-    #define LOCAL_TILE_PTR      LOCAL_TILE_TYPE long*
+    #define LOCAL_TILE_PTR      LOCAL_TILE_TYPE INT_TYPE*
+    #define LOCAL_TILE_PARAM      LOCAL_TILE_TYPE INT_TYPE* localW
 #endif
 
 #ifdef REGISTER_STORE
@@ -55,7 +59,8 @@
 
 #ifdef SHARED_STORE
     #define LOCAL_TILE_TYPE     __local
-    #define LOCAL_TILE_PTR      LOCAL_TILE_TYPE long*
+    #define LOCAL_TILE_PTR      LOCAL_TILE_TYPE INT_TYPE*
+    #define LOCAL_TILE_PARAM    LOCAL_TILE_TYPE INT_TYPE localW[2*(2*(TILE_LEN-1)+1)]
 #endif
 
 /**
@@ -92,7 +97,7 @@ isInLocalBlockBoundary(int ld, int lr)
 
 
 long inline __attribute__((always_inline)) 
-extendUnaligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+extendUnaligned(__global const char* P, __global const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
     long e = 0;
 
@@ -115,25 +120,25 @@ extendUnaligned(__global const char* P, __global const char* T, long m, long n, 
 #define ALIGN_MASK 0xFFFFFFFFFFFFFFF8
 
 long inline __attribute__((always_inline)) 
-extendAligned(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+extendAligned(__global const char* P, __global const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
     int pbv; // P valid bytes
     int tbv; // T valid bytes
     
-    long pai;
-    long tai;
+    INT_TYPE pai;
+    INT_TYPE tai;
     
     int pbidx;
     int tbidx;
     
-    long PV;    // P value
-    long TV;    // T value
+    INT_TYPE PV;    // P value
+    INT_TYPE TV;    // T value
 
     int mbv;
     unsigned long mask;
     int neq;
     
-    long e = 0;
+    INT_TYPE e = 0;
     
     //long gt = extend(P, T, m, n, pi, ti);
     
@@ -219,7 +224,7 @@ loop:
 
 
 long inline __attribute__((always_inline)) 
-extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+extend(__global const char* P, __global const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {    
 #ifdef EXTEND_ALIGNED
         return extendAligned(P, T, m, n, pi, ti);
@@ -229,7 +234,7 @@ extend(__global const char* P, __global const char* T, long m, long n, long pi, 
 }
 
 int inline __attribute__((always_inline)) 
-polarExistsInW(long d, long r)
+polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
     int ret =  abs(d) <= r;
     return ret;
@@ -245,11 +250,9 @@ polarExistsInW(long d, long r)
     
 
     void inline __attribute__((always_inline)) 
-    writeToW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+    writeToW(__global INT_TYPE* m_W, LOCAL_TILE_PARAM, INT_TYPE d, INT_TYPE r, INT_TYPE v, INT_TYPE m_k, int tileLen, int ld, int lr)
     {    
         writeLocalW(localW, ld, lr, v);
-        //int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr, tileLen);
-        //localW[lidx] = v;
 
         int inBoundary = isInLocalBlockBoundary(ld, lr);
         
@@ -266,7 +269,7 @@ polarExistsInW(long d, long r)
     }
 #else
     void inline __attribute__((always_inline)) 
-    writeToW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long v, long m_k, int tileLen, int ld, int lr)
+    writeToW(__global INT_TYPE* m_W, LOCAL_TILE_PARAM, INT_TYPE d, long r, INT_TYPE v, long m_k, int tileLen, int ld, int lr)
     {    
         int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr);
 
@@ -292,7 +295,7 @@ polarExistsInW(long d, long r)
     
     
     long inline __attribute__((always_inline)) 
-    readFromW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+    readFromW(__global INT_TYPE* m_W, LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r, INT_TYPE m_k, int tileLen, int ld, int lr)
     {
         int isInLocal = isInLocalBlock(ld, lr);
         
@@ -312,7 +315,7 @@ polarExistsInW(long d, long r)
         }
         else
         {
-            long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+            INT_TYPE gv = m_W[POLAR_W_TO_INDEX(d, r)];
             
     #ifdef DEBUG
             printf("RD(%ld, %ld, %d) ->  = %ld\n", 
@@ -323,14 +326,14 @@ polarExistsInW(long d, long r)
     }
 #else
     long inline __attribute__((always_inline)) 
-    readFromW(__global long* m_W, LOCAL_TILE_PTR localW, long d, long r, long m_k, int tileLen, int ld, int lr)
+    readFromW(__global INT_TYPE* m_W, LOCAL_TILE_PTR localW, INT_TYPE d, INT_TYPE r, INT_TYPE m_k, int tileLen, int ld, int lr)
     {
         int isInLocal = isInLocalBlock(ld, lr);
         
         if (isInLocal)
         {
             int lidx = POLAR_LOCAL_W_TO_INDEX(ld, lr);
-            long lv = localW[lidx];
+            INT_TYPE lv = localW[lidx];
 
     #ifdef DEBUG
         
@@ -343,7 +346,7 @@ polarExistsInW(long d, long r)
         }
         else
         {
-            long gv = m_W[POLAR_W_TO_INDEX(d, r)];
+            INT_TYPE gv = m_W[POLAR_W_TO_INDEX(d, r)];
             
     #ifdef DEBUG
             printf("RD(%ld, %ld, %d) ->  = %ld\n", 
@@ -358,20 +361,20 @@ polarExistsInW(long d, long r)
 void inline __attribute__((always_inline)) 
 processCell(__global char* P, 
         __global char* T, 
-        long m_m, 
-        long m_n,
-        long m_k, 
-        __global long* m_W,
-        __global long* p_final_d_r,
-        long d,
-        long r,
+        INT_TYPE m_m, 
+        INT_TYPE m_n,
+        INT_TYPE m_k, 
+        __global INT_TYPE* m_W,
+        __global INT_TYPE* p_final_d_r,
+        INT_TYPE d,
+        INT_TYPE r,
         int tileLen,
         LOCAL_TILE_PTR localW,
         int ld,
         int lr,
         int* doRun,
-        long m_top,
-        long final_d)
+        INT_TYPE m_top,
+        INT_TYPE final_d)
 {
     // printf("%ld  >= %ld ? \n", p_final_d_r[0], m_top);
 
@@ -387,9 +390,9 @@ processCell(__global char* P,
     if (!polarExistsInW(d,r))
         return;
         
-    long diag_up;
-    long left;
-    long diag_down;
+    INT_TYPE diag_up;
+    INT_TYPE left;
+    INT_TYPE diag_down;
     
     if (r > 0)
     {
@@ -403,7 +406,7 @@ processCell(__global char* P,
         if (d == 0)
         {
             // initial case
-            long extended = extend(P, T, m_m, m_n, 0, 0);
+            INT_TYPE extended = extend(P, T, m_m, m_n, 0, 0);
             WRITE_W(d, r, extended);
             
             if ((d == final_d) && extended >= m_top)
@@ -426,7 +429,7 @@ processCell(__global char* P,
 
         //printf("u|l|r = %ld|%ld|%ld\n",  diag_up, left, diag_down);
 
-        long compute;
+        INT_TYPE compute;
 
         if (d == 0)
             compute = max(diag_up, diag_down);
@@ -449,13 +452,13 @@ processCell(__global char* P,
             return;
         }
 
-        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+        INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+        INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
         if ((ex < m_n) && (ey < m_m))
         {
-            long extendv = extend(P, T, m_m, m_n, ey, ex);
-            long extended = compute + extendv;
+            INT_TYPE extendv = extend(P, T, m_m, m_n, ey, ex);
+            INT_TYPE extended = compute + extendv;
 
             WRITE_W(d, r, extended);
 
@@ -498,37 +501,37 @@ processCell(__global char* P,
 __kernel void wfo2cols(
         __global char* P, 
         __global char* T, 
-        long m_m, 
-        long m_n, 
-        long r0, 
-        long m_k,  
-        __global long* m_W,
-        __global long* p_final_d_r,
+        INT_TYPE m_m, 
+        INT_TYPE m_n, 
+        INT_TYPE r0, 
+        INT_TYPE m_k,  
+        __global INT_TYPE* m_W,
+        __global INT_TYPE* p_final_d_r,
         int tileLen)
 {
 #ifdef GLOBAL_STORE
-    LOCAL_TILE_TYPE long localW[2*TILE_LEN*TILE_LEN];    
-    #define GET_LOCAL_TILE_REF
+    LOCAL_TILE_TYPE INT_TYPE localW[2*(2*(TILE_LEN-1)+1)];    
+    #define GET_LOCAL_TILE_REF localW
 #endif
 
 #ifdef REGISTER_STORE
     LOCAL_TILE localW;
-    #define GET_LOCAL_TILE_REF &
+    #define GET_LOCAL_TILE_REF &localW
 #endif
     
 #ifdef SHARED_STORE
-    LOCAL_TILE_TYPE long shared_localW[WORKGROUP_SIZE][2*TILE_LEN*TILE_LEN];
+    LOCAL_TILE_TYPE INT_TYPE shared_localW[WORKGROUP_SIZE][2*(2*(TILE_LEN-1)+1)];
     size_t lid = get_local_id(0);
-    LOCAL_TILE_TYPE long* localW = &shared_localW[lid][0];
-    #define GET_LOCAL_TILE_REF
+    LOCAL_TILE_TYPE INT_TYPE* localW = &shared_localW[lid][0];
+    #define GET_LOCAL_TILE_REF localW
 #endif
 
     size_t gid = get_global_id(0);
 
     //long d = gid - (r-1);
-    long d0 = r0 - gid*2*TILE_LEN; 
-    long m_top = max2(m_m,m_n);
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE d0 = r0 - gid*2*TILE_LEN; 
+    INT_TYPE m_top = max2(m_m,m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     int doRun = 1;
     
     if (abs(d0) > r0)
@@ -549,7 +552,7 @@ __kernel void wfo2cols(
     // Increase
     for (int i=0 ; ((i < tileLen) && (doRun)); i++)
         for (int j=-i; ((j <= i) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, GET_LOCAL_TILE_REF localW, j, i, &doRun, m_top, final_d);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+i, tileLen, GET_LOCAL_TILE_REF , j, i, &doRun, m_top, final_d);
     
     // Decrease
     for (int i=0 ; ((i < tileLen) && (doRun)); i++)
@@ -557,6 +560,6 @@ __kernel void wfo2cols(
         int ii = tileLen - 1 -i;
         
         for (int j=-ii; ((j <= ii) && (doRun)); j++)
-            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, GET_LOCAL_TILE_REF localW, j, tileLen+i, &doRun, m_top, final_d);
+            processCell(P, T, m_m, m_n, m_k, m_W, p_final_d_r, d0+j, r0+tileLen+i, tileLen, GET_LOCAL_TILE_REF , j, tileLen+i, &doRun, m_top, final_d);
     }
 }
