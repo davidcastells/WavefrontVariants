@@ -102,9 +102,9 @@ int doWFDD2CUDA = 0;
 
 int doAlignmentPath = 0;
 
-long gM = 100;          // Pattern sequence length
-long gN = 100;          // Test sequence length
-long gK = 100;          // Maximum allowed error
+INT_TYPE gM = 100;          // Pattern sequence length
+INT_TYPE gN = 100;          // Test sequence length
+INT_TYPE gK = 100;          // Maximum allowed error
 
 char* gP = NULL;
 char* gT = NULL;
