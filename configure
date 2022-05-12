@@ -1,0 +1,155 @@
+#!/usr/bin/python
+print('Wavefront variants Python based configure script')
+print('Copyright (C) 2021-2022, David Castells-Rufas <david.castells@uab.cat>')
+print('Universitat Autonoma de Barcelona')
+
+
+import os
+import sys
+
+def sysexec(cmd):
+    stream = os.popen(cmd)
+    outStr = stream.read()
+    lines = outStr.split('\n');
+    return lines;
+
+def whereis(cmd):
+    str = "whereis {}".format(cmd)
+    ret = sysexec(str)
+    part = ret[0].split(':')
+    return part[1]
+
+def hasCUDASupport():
+    if ("--with-CUDA" in sys.argv):
+        return True
+
+    return (len(whereis("nvcc")) > 0)
+
+def hasOpenCLSupport():
+    clincludes = 'find /usr/include/ | grep "CL/cl.h"'
+    if (len(sysexec(clincludes)) > 0):
+        return True
+    else:
+        return False
+    
+
+def hasFPGAPlatform():
+    return False;
+
+
+def getGccVersion():
+    sv = sysexec("gcc --version")[0];
+    part = sv.split(")");
+    return part[1].strip()
+
+
+def getNvccVersion():
+    sv = sysexec("nvcc --version")[3];
+    part = sv.split("V");
+    return part[1].strip()
+    
+    
+if ('--help' in sys.argv or '-h' in sys.argv):
+    print('configure [options]')
+    print('')
+    print('   -h,--help    print this message')
+    print('   --no-cuda    avoid CUDA implementation')
+    quit()
+    
+if ('--no-cuda' in sys.argv):
+    bHasCUDA = False
+else:
+    bHasCUDA = hasCUDASupport()
+    
+bHasOpenCL = hasOpenCLSupport()
+bHasFPGA = hasFPGAPlatform()
+
+print("--> Checking CUDA Support:\t{}".format( "[OK]" if (bHasCUDA) else "[None]"))
+print("--> Checking OpenCL Support:\t{}".format( "[OK]" if (bHasOpenCL) else "[None]"))
+print("--> Checking FPGA Platform:\t{}".format( "[OK]" if (bHasFPGA) else "[None]"))
+print("--> gcc version: {}".format(getGccVersion()))
+
+if (bHasCUDA):
+    print("--> nvcc version: {}".format(getNvccVersion()))
+
+def getObjects():
+    # edlib.o EdlibAligner.o utils.o TextFileReader.o
+    objs =  """wavefront.o  LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
+\tWavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o  \\
+\tWavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o \\
+\tWavefrontDynamicDiamond2Cols.o fasta.o   PerformanceLap.o """
+
+    if (bHasOpenCL):
+        # OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o
+        objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o   OCLUtils.o "
+
+    #if (bHasCUDA):
+    #    objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
+
+    return objs;
+
+
+# generate Makefile
+
+
+CFLAGS = "-g"
+OPTIMIZATION = "-O3"
+
+if bHasCUDA:
+    CC = "/usr/local/cuda-11/bin/nvcc"
+    OPTIMIZATION = "-Xcompiler -O3 "
+    CFLAGS += " -gencode arch=compute_86,code=sm_86 -use_fast_math -D HAS_CUDA"
+
+else:
+    CC = "g++"
+    CFLAGS += " -fpermissive "
+    if (getGccVersion().split(".")[0]>7):
+        CFLAGS += " -gdwarf-4 "
+
+print("--> CFLAGS: {}".format(CFLAGS)) 
+
+print("--> Generating Makefile")
+
+f = open("Makefile", "w")
+
+f.write("# Do not modify, this makefile was automatically created by the configure script\n")
+f.write("OPTIMIZATION={}\n".format(OPTIMIZATION))
+f.write("CFLAGS={}\n".format(CFLAGS))
+
+if (bHasOpenCL):
+    f.write("OPENCL=-l OpenCL\n")
+
+f.write("\n")
+f.write("%.o: %.cpp\n")
+f.write("\t" + CC + "  $(OPTIMIZATION) $(CFLAGS) -I . -c $< -o $@\n")
+
+f.write("\n")
+f.write("%.o: %.cu\n")
+f.write("\t" + CC + "  $(OPTIMIZATION) $(CFLAGS) -I . -c $< -o $@\n")
+
+f.write("\n")
+f.write("OBJECTS=" + getObjects() + "\n")
+
+
+f.write("\n")
+f.write("all: wavefront\n")
+f.write("\n")
+
+f.write("clean:\n")
+f.write("\trm -f *.o\n")
+f.write("\trm -f wavefront\n")
+f.write("\n")
+f.write("wavefront: $(OBJECTS)\n")
+
+sLink = "\t" + CC +  "  $(OPTIMIZATION) $(CFLAGS) $(OBJECTS) "
+if (hasOpenCLSupport()):
+    sLink += "$(OPENCL)"
+sLink += " -o wavefront\n"
+f.write(sLink)
+
+f.close()
+
+print("--> Done!")
+print("Compile with make")
+
+
