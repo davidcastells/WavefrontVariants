@@ -23,22 +23,22 @@ public:
     OCLGPUWavefrontOriginal2Cols();
     virtual ~OCLGPUWavefrontOriginal2Cols();
 
-    void setInput(const char* P, const char* T, long k);
-    long getDistance();
-    char* getAlignmentPath(long* distance);
+    void setInput(const char* P, const char* T, INT_TYPE k);
+    INT_TYPE getDistance();
+    char* getAlignmentPath(INT_TYPE* distance);
     const char* getDescription(); 
 
     void setCommonArgs();
-    void invokeKernel(long r);
-    void progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive);
+    void invokeKernel(INT_TYPE r);
+    void progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive);
     
 	
-    long* m_W;
-    long m_k;
-    long m_top;
+    INT_TYPE* m_W;
+    INT_TYPE m_k;
+    INT_TYPE m_top;
     int m_tileLen;
     std::string m_localStore;
-    long m_final_d_r[2];
+    INT_TYPE m_final_d_r[2];
     
     cl_context m_context;
     OCLQueue* m_queue;
