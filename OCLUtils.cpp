@@ -266,6 +266,19 @@ void OCLUtils::releaseMemObject(cl_mem& p)
     CHECK_CL_ERRORS(err);
 }
 
+
+std::string OCLUtils::getDir(const char* file_name)
+{
+    std::string str(file_name);
+    std::size_t found = str.find_last_of("/");
+    return str.substr(0,found);
+}
+
+void OCLUtils::setKernelDir(std::string& str)
+{
+    m_kernelDir = str + std::string("/");
+}
+
 /**
  * Creates a context a sets it as the default context
  * @return 
@@ -326,9 +339,11 @@ int OCLUtils::fileExists(const char *file_name)
 
 std::string OCLUtils::loadSourceFile(const char* filename)
 {
+    std::string file = m_kernelDir + std::string(filename);
+    
     // Read program file and place content into buffer 
-    FILE* fp = fopen(filename, "r");
-
+    FILE* fp = fopen(file.c_str(), "r");
+    
     if (fp == NULL) 
         throw std::runtime_error(std::string("File not found") + std::string(filename));
 
@@ -353,12 +368,14 @@ std::string OCLUtils::loadSourceFile(const char* filename)
 
 unsigned char* OCLUtils::loadBinaryFile(const char* filename, size_t *size) 
 {
-  // Open the File
-  FILE* fp;
-  fp = fopen(filename, "rb");
-  
-  if(fp == 0)
-      throw std::runtime_error(std::string("File not found") + std::string(filename));
+    std::string file = m_kernelDir + std::string(filename);
+
+    // Open the File
+    FILE* fp;
+    fp = fopen(file.c_str(), "rb");
+    
+    if(fp == 0)
+        throw std::runtime_error(std::string("File not found") + std::string(filename));
 
   // Get the size of the file
   fseek(fp, 0, SEEK_END);
@@ -427,7 +444,7 @@ cl_program OCLUtils::createProgramFromBinary(const char * binaryFile )
   return program;
 }
 
-cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
+cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string& options)
 {
     printf("Loading %s\n", sourceFile);
     cl_program program;
@@ -451,12 +468,11 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     
     cl_device_id device_ids[] = {m_deviceId};
     
-    std::string options;
     
     if (contains(m_selectedPlatformName, "Portable Computing Language"))
-        options = "-g -cl-opt-disable"; 
+        options += " -g -cl-opt-disable"; 
     else if (contains(m_selectedPlatformName, "NVIDIA"))
-        options = "-cl-nv-verbose"; 
+        options += " -cl-nv-verbose"; 
     
     PerformanceLap lap;
     err = clBuildProgram(program, 1, device_ids, options.c_str(), build_notify, NULL);
@@ -477,8 +493,9 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile)
     // Print the log
     printf("BUILD INFO:\n");
     printf("Compilation flags: %s\n", options.c_str());
-    printf(log);
+    printf("%s", log);
     printf("\n");
+    fflush(stdout);
     free(log);
         
     lap.stop();
@@ -588,10 +605,22 @@ OCLQueue::~OCLQueue()
     // CHECK_CL_ERRORS(err);
 }
 
-void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems)
+
+void OCLQueue::invokeKernel1D(cl_kernel kernel, size_t workitems, size_t workgroupsize)
 {
-    size_t wgSize[3] = {32, 1, 1};
-    size_t gSize[3] = {(workitems+31)/32*32, 1, 1};
+    // workitems must be multiple of workgroupsize
+    if (workgroupsize > 1)
+    {
+        size_t new_workitems = ((workitems + (workgroupsize-1)) / workgroupsize) * workgroupsize;
+                
+        if (verbose > 2)
+            printf("Rounding workitems from %ld to %ld\n", workitems, new_workitems);
+        
+        workitems = new_workitems;
+    }
+    
+    size_t wgSize[3] = {workgroupsize, 1, 1};
+    size_t gSize[3] = {workitems, 1, 1};
 
     cl_int ret = clEnqueueNDRangeKernel(m_queue, kernel, 1, NULL, gSize, wgSize, 0, NULL, NULL);
     CHECK_CL_ERRORS(ret);
