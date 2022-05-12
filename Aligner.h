@@ -5,12 +5,19 @@
 
 #include <stdio.h>
 
+#define INT_TYPE int
+#define INT_TYPE_FMT d
+#define STR(x)  #x
+#define STR_INT_TYPE STR(int)
+#define FMT_INT_TYPE STR(INT_TYPE_FMT)
+#define CL_INT_TYPE cl_int
+
 class Aligner
 {
 public:
-	virtual void setInput(const char* P, const char* T, long k) = 0;
-	virtual long getDistance() = 0;
-	virtual char* getAlignmentPath(long* distance) = 0;
+	virtual void setInput(const char* P, const char* T, INT_TYPE k) = 0;
+	virtual INT_TYPE getDistance() = 0;
+	virtual char* getAlignmentPath(INT_TYPE* distance) = 0;
 	virtual const char* getDescription() = 0; 
 	
 	void freePath(char* p)
@@ -19,14 +26,14 @@ public:
 	}
 
 	
-	void execute(const char* P, const char* T, int k, int doAlignmentPath)
+	void execute(const char* P, const char* T, INT_TYPE k, int doAlignmentPath)
 	{
 		setInput(P, T, k);
 		
 		PerformanceLap lap;
 		if (doAlignmentPath)
 		{
-			long ed;
+			INT_TYPE ed;
 			char* path = getAlignmentPath(&ed);
 			lap.stop();
 
@@ -42,11 +49,18 @@ public:
 		}
 		else
 		{
-			long ed = getDistance();
-			lap.stop();
-			printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+			INT_TYPE ed = getDistance();
+            lap.stop();
+            printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+            printf("m x n = %d x %d\n", m_m, m_n);
+            printf("Equivalent GCUPS: %f\n", (((double)m_m*m_n)/(lap.lap() * 1E9)));
 		}
 	}
+	
+	const char* m_P;
+	const char* m_T;
+	INT_TYPE m_m;
+	INT_TYPE m_n;
 };
 
 #endif
