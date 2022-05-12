@@ -73,16 +73,18 @@ if (bHasCUDA):
     print("--> nvcc version: {}".format(getNvccVersion()))
 
 def getObjects():
-    objs =  """wavefront.o edlib.o EdlibAligner.o LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
+    # edlib.o EdlibAligner.o utils.o TextFileReader.o
+    objs =  """wavefront.o  LevDP.o LevDP2Cols.o WavefrontOriginal.o  \\
 \tWavefrontOriginal2Cols.o WavefrontExtendPrecomputing.o  \\
 \tWavefrontDiamond.o WavefrontDiamond2Cols.o WavefrontDynamicDiamond.o \\
-\tWavefrontDynamicDiamond2Cols.o fasta.o utils.o TextFileReader.o PerformanceLap.o """
+\tWavefrontDynamicDiamond2Cols.o fasta.o   PerformanceLap.o """
 
     if (bHasOpenCL):
-        objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o OCLUtils.o "
+        # OCLFPGAWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o
+        objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o   OCLUtils.o "
 
-    if (bHasCUDA):
-        objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
+    #if (bHasCUDA):
+    #    objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
 
     return objs;
 
