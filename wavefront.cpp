@@ -76,9 +76,9 @@ int doWFDD2 = 0;
 int doWFDD2OCL = 0;
 int doAlignmentPath = 0;
 
-long gM = 100;
-long gN = 100;
-long gK = 100;
+INT_TYPE gM = 100;
+INT_TYPE gN = 100;
+INT_TYPE gK = 100;
 
 char* gP = NULL;
 char* gT = NULL;
