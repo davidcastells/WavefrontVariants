@@ -62,8 +62,8 @@ int polarExistsInW(long d, long r)
  * @param furthest reaching radius 
  */
 __kernel void wfo2cols(
-        __global char* P, 
-        __global char* T, 
+        __global char* restrict P, 
+        __global char* restrict T, 
         long m_m, 
         long m_n, 
         long r, 
