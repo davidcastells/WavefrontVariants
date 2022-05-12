@@ -34,9 +34,9 @@ WavefrontOriginal::~WavefrontOriginal()
 
 
 
-long extend(const char* P, const char* T, long m, long n, long pi, long ti)
+INT_TYPE extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-	long e = 0;
+	INT_TYPE e = 0;
 	
 	while (pi < m && ti < n)
 	{
@@ -50,23 +50,23 @@ long extend(const char* P, const char* T, long m, long n, long pi, long ti)
 	return e;
 }
 
-long polarExistsInD(long d, long r)
+int polarExistsInD(INT_TYPE d, INT_TYPE r)
 {
-	long  x = POLAR_D_TO_CARTESIAN_X(d,r);
-	long y = POLAR_D_TO_CARTESIAN_Y(d,r);
+	INT_TYPE x = POLAR_D_TO_CARTESIAN_X(d,r);
+	INT_TYPE y = POLAR_D_TO_CARTESIAN_Y(d,r);
 	
 	return ((x >= 0) && (y>=0));
 }
 
-long polarExistsInW(long d, long r)
+int polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
-	long x = POLAR_W_TO_CARTESIAN_X(d,r);
-	long y = POLAR_W_TO_CARTESIAN_Y(d,r);
+	INT_TYPE x = POLAR_W_TO_CARTESIAN_X(d,r);
+	INT_TYPE y = POLAR_W_TO_CARTESIAN_Y(d,r);
 	
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontOriginal::setInput(const char* P, const char* T, long k)
+void WavefrontOriginal::setInput(const char* P, const char* T, INT_TYPE k)
 {
     m_m = strlen(P);
     m_n = strlen(T);
@@ -78,7 +78,7 @@ void WavefrontOriginal::setInput(const char* P, const char* T, long k)
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -95,10 +95,10 @@ void WavefrontOriginal::setInput(const char* P, const char* T, long k)
 
 }
 
-long WavefrontOriginal::getDistance()
+INT_TYPE WavefrontOriginal::getDistance()
 {
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long ret;
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE ret;
 
     // for the first element, just execute the extend phase
     m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
@@ -106,15 +106,15 @@ long WavefrontOriginal::getDistance()
     if (m_W[0] >= m_top)
         goto end_loop;
 
-    for (long r = 1; r < m_k; r++)
+    for (INT_TYPE r = 1; r < m_k; r++)
     {
-        for (long d = -r; d <= r; d++)
+        for (INT_TYPE d = -r; d <= r; d++)
         {
-            long diag_up = (polarExistsInW(d + 1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d + 1, r - 1, m_k)] : 0;
-            long left = (polarExistsInW(d, r - 1)) ? m_W[POLAR_W_TO_INDEX(d, r - 1, m_k)] : 0;
-            long diag_down = (polarExistsInW(d - 1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d - 1, r - 1, m_k)] : 0;
+            INT_TYPE diag_up = (polarExistsInW(d + 1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d + 1, r - 1, m_k)] : 0;
+            INT_TYPE left = (polarExistsInW(d, r - 1)) ? m_W[POLAR_W_TO_INDEX(d, r - 1, m_k)] : 0;
+            INT_TYPE diag_down = (polarExistsInW(d - 1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d - 1, r - 1, m_k)] : 0;
 
-            long compute;
+            INT_TYPE compute;
 
             if (d == 0)
                 compute = max3(diag_up, left + 1, diag_down);
@@ -130,15 +130,15 @@ long WavefrontOriginal::getDistance()
                 goto end_loop;
             }
 
-            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+            INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+            INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
             if ((ex < m_n) && (ey < m_m))
             {
                 //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
 
-                long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-                long extended = compute + extendv;
+                INT_TYPE extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                INT_TYPE extended = compute + extendv;
 
                 m_W[POLAR_W_TO_INDEX(d, r, m_k)] = extended;
 
@@ -202,36 +202,36 @@ const char* WavefrontOriginal::getDescription()
  * @param distance
  * @return 
  */
-char* WavefrontOriginal::getAlignmentPath(long* distance)
+char* WavefrontOriginal::getAlignmentPath(INT_TYPE* distance)
 {
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     
     *distance = getDistance();
 
     // longest worst case path goes through the table boundary 
     char* path = new char[m_m + m_n];
     
-    long i=0;
+    INT_TYPE i=0;
     
-    long d = final_d;
-    long r = *distance;
+    INT_TYPE d = final_d;
+    INT_TYPE r = *distance;
     
     
     while (r > 0)
     {
-        int incr = 0;
+        INT_TYPE incr = 0;
         
-        long ed = m_W[POLAR_W_TO_INDEX(d, r, m_k)];
-        long diag = (polarExistsInW(d, r - 1)) ? m_W[POLAR_W_TO_INDEX(d, r-1, m_k)] : 0;
-        long up = (polarExistsInW(d+1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d+1, r-1, m_k)] : 0;
-        long down = (polarExistsInW(d-1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d-1, r-1, m_k)] : 0;
+        INT_TYPE ed = m_W[POLAR_W_TO_INDEX(d, r, m_k)];
+        INT_TYPE diag = (polarExistsInW(d, r - 1)) ? m_W[POLAR_W_TO_INDEX(d, r-1, m_k)] : 0;
+        INT_TYPE up = (polarExistsInW(d+1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d+1, r-1, m_k)] : 0;
+        INT_TYPE down = (polarExistsInW(d-1, r - 1)) ? m_W[POLAR_W_TO_INDEX(d-1, r-1, m_k)] : 0;
         
         if (d >= 0)
             up--;
         if (d <= 0)
             down--;
         
-        long m = max3(diag, up , down);
+        INT_TYPE m = max3(diag, up , down);
         
         if (m == diag)
         {
@@ -262,11 +262,11 @@ char* WavefrontOriginal::getAlignmentPath(long* distance)
     path[i] = 0;
     
     // now reverse
-    long k = i - 1;
+    INT_TYPE k = i - 1;
 
     for (int i = 0; i < k / 2; i++)
     {
-        long aux = path[i];
+        INT_TYPE aux = path[i];
         path[i] = path[k - i];
         path[k - i] = aux;
     }
