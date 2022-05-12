@@ -499,8 +499,10 @@ cl_program OCLUtils::createProgramFromSource(const char* sourceFile, std::string
     
     // Print the log
     printf("BUILD INFO:\n");
-    printf(log);
+    printf("Compilation flags: %s\n", options.c_str());
+    printf("%s", log);
     printf("\n");
+    fflush(stdout);
     free(log);
         
     lap.stop();
