@@ -74,9 +74,10 @@ int doWFDD = 0;
 int doWFDD2 = 0;
 int doAlignmentPath = 0;
 
-long gM = 100;
-long gN = 100;
-long gK = 100;
+
+INT_TYPE gM = 100;
+INT_TYPE gN = 100;
+INT_TYPE gK = 100;
 
 char* gP = NULL;
 char* gT = NULL;
@@ -85,15 +86,28 @@ char* gfP = NULL;
 char* gfT = NULL;
 
 int gPid = 0;
+int gDid = 0;           // OpenCL device ID
+int gWorkgroupSize = 8; // Workgroup size
+
+double gPrintPeriod = -1;
 
 int gMeasureIterationTime = 0;
 
 int verbose = 0;
 
+std::string gExeDir = ".";
+
 void usage();
 
 void parseArgs(int argc, char* args[])
 {
+    gExeDir = OCLUtils::getDir(args[0]);
+    
+    auto ocl = OCLUtils::getInstance();
+    ocl->setKernelDir(gExeDir);
+    if (verbose)
+        printf("kernel dir: %s\n", gExeDir.c_str());
+        
     for (int i=1; i < argc; i++)
     {
         //printf("parsing %s\n", args[i]);
@@ -120,7 +134,18 @@ void parseArgs(int argc, char* args[])
             gPid = atol(args[++i]);
 //            printf("gpid = %d\n", gPid);
         }
-
+        if ((strcmp(args[i], "-did") == 0) || (strcmp(args[i], "--opencl-device-id") == 0))
+        {
+            gDid = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-wgs") == 0) || (strcmp(args[i], "--workgroup-size") == 0))
+        {
+            gWorkgroupSize = atol(args[++i]);
+        }
+        if ((strcmp(args[i], "-pp") == 0) || (strcmp(args[i], "--print-period") == 0))
+        {
+            gPrintPeriod = atof(args[++i]);
+        }
         if (strcmp(args[i], "-P") == 0)
             gP = args[++i];
         if (strcmp(args[i], "-T") == 0)
