@@ -83,8 +83,8 @@ def getObjects():
         # OCLFPGAWavefrontOriginal2Cols.o 
         objs += "\\\n\tOCLGPUWavefrontOriginal2Cols.o OCLGPUWavefrontDynamicDiamond2Cols.o  OCLUtils.o "
 
-    if (bHasCUDA):
-        objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
+    #if (bHasCUDA):
+    #    objs += "\\\n\tCUDAWavefrontOriginal2Cols.o CUDAWavefrontDynamicDiamond2Cols.o "
 
     return objs;
 
