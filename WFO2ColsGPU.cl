@@ -18,9 +18,9 @@
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
-long extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+long extend(__global const char* P, __global const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-    long e = 0;
+    INT_TYPE e = 0;
 
     while (pi < m && ti < n)
     {
@@ -35,7 +35,7 @@ long extend(__global const char* P, __global const char* T, long m, long n, long
 }
 
 
-int polarExistsInW(long d, long r)
+int polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
     return abs(d) <= r;
 }
@@ -58,28 +58,28 @@ int polarExistsInW(long d, long r)
 __kernel void wfo2cols(
         __global char* P, 
         __global char* T, 
-        long m_m, 
-        long m_n, 
-        long r, 
-        long m_k,  
-        __global long* m_W,
-        __global long* p_final_d_r)
+        INT_TYPE m_m, 
+        INT_TYPE m_n, 
+        INT_TYPE r, 
+        INT_TYPE m_k,  
+        __global INT_TYPE* m_W,
+        __global INT_TYPE* p_final_d_r)
 {
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
     
 #ifdef SHARED_STORE
-    __local long localW[WORKGROUP_SIZE];
+    __local INT_TYPE localW[WORKGROUP_SIZE];
 #endif
     
     //long d = gid - (r-1);
-    long d = r - gid; 
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n);
+    INT_TYPE d = r - gid; 
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n);
     
-    long diag_up;
-    long left;
-    long diag_down; 
+    INT_TYPE diag_up;
+    INT_TYPE left;
+    INT_TYPE diag_down; 
         
 #ifdef SHARED_STORE
     if (r > 0)
@@ -115,7 +115,7 @@ __kernel void wfo2cols(
     {
         if (d == 0)
         {
-            long extended = extend(P, T, m_m, m_n, 0, 0); 
+            INT_TYPE extended = extend(P, T, m_m, m_n, 0, 0); 
             // initial case
             m_W[POLAR_W_TO_INDEX(d, r)] = extended; 
             if ((d == final_d) && extended >= m_top)
@@ -142,7 +142,7 @@ __kernel void wfo2cols(
         left = (polarExistsInW(d,r-1))? left : 0;
         diag_down = (polarExistsInW(d-1,r-1))?  diag_down  : 0; 
 #endif
-        long compute;
+        INT_TYPE compute;
 
         if (d == 0)
             compute = max(diag_up, diag_down);
@@ -161,13 +161,13 @@ __kernel void wfo2cols(
             return;
         }
 
-        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+        INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+        INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
         if ((ex < m_n) && (ey < m_m))
         {
-            long extendv = extend(P, T, m_m, m_n, ey, ex);
-            long extended = compute + extendv;
+            INT_TYPE extendv = extend(P, T, m_m, m_n, ey, ex);
+            INT_TYPE extended = compute + extendv;
 
             m_W[POLAR_W_TO_INDEX(d, r)] = extended;
 
