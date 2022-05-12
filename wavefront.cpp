@@ -19,15 +19,9 @@
 #include "OCLUtils.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
 
-int wavefront_classic(const char* P, const char* T, int m, int n, int k);
-int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
-
-void test_primitives();
-int polarExistsInD(int d, int r);
-int polarExistsInW(int d, int r);
 
 
-void generatePT(char** pP, char** pT, int m, int n)
+void generatePT(char** pP, char** pT, INT_TYPE m, INT_TYPE n)
 {
 	char s[]="ACGT";
 	
@@ -76,9 +70,9 @@ int doWFDD2OCL = 0;
 int doWFDD2CUDA = 0;
 int doAlignmentPath = 0;
 
-long gM = 100;
-long gN = 100;
-long gK = 100;
+INT_TYPE gM = 100;
+INT_TYPE gN = 100;
+INT_TYPE gK = 100;
 
 char* gP = NULL;
 char* gT = NULL;
@@ -109,6 +103,13 @@ void usage();
 
 void parseArgs(int argc, char* args[])
 {
+    gExeDir = OCLUtils::getDir(args[0]);
+    
+    auto ocl = OCLUtils::getInstance();
+    ocl->setKernelDir(gExeDir);
+    if (verbose)
+        printf("kernel dir: %s\n", gExeDir.c_str());
+        
     for (int i=1; i < argc; i++)
     {
         //printf("parsing %s\n", args[i]);
@@ -318,26 +319,26 @@ int main(int argc, char* args[])
 
     if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
     {
-            printf("Generating random Input\n");
-            generatePT(&gP, &gT, gM, gN);
+        printf("Generating random Input\n");
+        generatePT(&gP, &gT, gM, gN);
     }
     else if (gfP != NULL)
     {
-            printf("Reading input files\n");
-            fastaP = FastaReader::read(gfP);
-            fastaT = FastaReader::read(gfT);
+        printf("Reading input files\n");
+        fastaP = FastaReader::read(gfP);
+        fastaT = FastaReader::read(gfT);
 
-            gP = fastaP.seq;
-            gT = fastaT.seq;
+        gP = fastaP.seq;
+        gT = fastaT.seq;
 
-            gM = strlen(gP);
-            gN = strlen(gT);
+        gM = strlen(gP);
+        gN = strlen(gT);
     }
     else
     {
-            printf("Explicit Input\n");
-            gM = strlen(gP);
-            gN = strlen(gT);
+        printf("Explicit Input\n");
+        gM = strlen(gP);
+        gN = strlen(gT);
     }
 
     if (gK == -1)
