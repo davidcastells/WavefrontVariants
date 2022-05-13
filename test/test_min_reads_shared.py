@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 
 def split_multiple(s, seps):
     res = [s]
@@ -64,9 +65,15 @@ os.system('export CUDA_CACHE_DISABLE=1');
 print('Testing BA000035.2.fasta vs BX927147.1.fasta')
 print('mem,wgs,register,shmem,cmem,time,gcups')
 
-for wgs in range(32,1025, 32):
+df = pd.read_csv('min_reads_shared.txt', skiprows=1)
+
+for wgs in range(32,1025, 4):
+    df_wgs = df[df['wgs']==wgs]
     for mem in ['shared','global']:
-        test('BA000035.2.fasta', 'BX927147.1.fasta', mem, wgs)
+        df_mem = df_wgs[df_wgs['mem']==mem]
+        
+        if (len(df_mem) == 0):
+            test('BA000035.2.fasta', 'BX927147.1.fasta', mem, wgs)
 
 
 
@@ -78,7 +85,8 @@ for wgs in range(32,1025, 32):
 #test('NT_033779.4.fasta', 'NT_037436.3.fasta', -1) 
 #testED('BA000046.3.fasta', 'NC_000021.7.fasta') 
 
-
+# RUN IT WITH:
+# nohup python3 -u test_min_reads_shared.py > new_min_reads_shared.txt &
 
 
 
