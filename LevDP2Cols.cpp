@@ -24,7 +24,7 @@ LevDP2Cols::~LevDP2Cols()
 	delete [] m_D;
 }
 
-void LevDP2Cols::setInput(const char* P, const char* T, long k)
+void LevDP2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -36,7 +36,7 @@ void LevDP2Cols::setInput(const char* P, const char* T, long k)
 
 	try
 	{
-		m_D = new long[size];
+		m_D = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -53,7 +53,7 @@ void LevDP2Cols::setInput(const char* P, const char* T, long k)
 
 }
 
-long LevDP2Cols::getDistance()
+INT_TYPE LevDP2Cols::getDistance()
 {
 	printf("computing\n");
 
@@ -62,12 +62,12 @@ long LevDP2Cols::getDistance()
 
         int lastpercent = -1;
         
-	for (long x = 0; x <= m_n; x++)
+	for (INT_TYPE x = 0; x <= m_n; x++)
 	{
             progress(lap, x, lastpercent, 0, 0);
 
 
-		for (long y = 0; y <= m_m; y++)
+		for (INT_TYPE y = 0; y <= m_m; y++)
 		{
 			if (x == 0)
 			{
@@ -79,18 +79,18 @@ long LevDP2Cols::getDistance()
 			}
 			else
 			{
-				long d = abs(x-y);
+				INT_TYPE d = abs(x-y);
 				if (d > m_k)
 				{
 					m_D[CARTESIAN_TO_INDEX(y, x)] = m_top;
 				}
 				else
 				{
-					int dif = m_P[y-1] != m_T[x-1];
-					int diag = m_D[CARTESIAN_TO_INDEX(y-1, x-1)] + dif;
-					int up = m_D[CARTESIAN_TO_INDEX(y-1, x)] + 1;
-					int left = m_D[CARTESIAN_TO_INDEX(y, x-1)] + 1;
-					int v = min3(up, left, diag);
+					INT_TYPE dif = m_P[y-1] != m_T[x-1];
+					INT_TYPE diag = m_D[CARTESIAN_TO_INDEX(y-1, x-1)] + dif;
+					INT_TYPE up = m_D[CARTESIAN_TO_INDEX(y-1, x)] + 1;
+					INT_TYPE left = m_D[CARTESIAN_TO_INDEX(y, x-1)] + 1;
+					INT_TYPE v = min3(up, left, diag);
 					m_D[CARTESIAN_TO_INDEX(y, x)] = v;
 				}
 			}
@@ -102,7 +102,7 @@ long LevDP2Cols::getDistance()
 	if (verbose)
 		printf("\n");
 		
-	int ret = m_D[CARTESIAN_TO_INDEX(m_m, m_n)];
+	INT_TYPE ret = m_D[CARTESIAN_TO_INDEX(m_m, m_n)];
 	
 	return ret;
 }
@@ -116,55 +116,55 @@ const char* LevDP2Cols::getDescription()
 class CellPointer
 {
 public:
-	CellPointer(long x, long y, CellPointer* d, char type)
+	CellPointer(INT_TYPE x, INT_TYPE y, CellPointer* d, char type)
 	{
 		m_x = x;
 		m_y = y;
 		m_p = d;
-                count = 0;
-                m_type = type;
-                
-                if (m_p != NULL)
-                    m_p->count++;
+        count = 0;
+        m_type = type;
+        
+        if (m_p != NULL)
+            m_p->count++;
 	}
 	
-        static void deleteChain(CellPointer* target, long& alive)
+    static void deleteChain(CellPointer* target, long& alive)
+    {
+        CellPointer* p = target;
+        CellPointer* pp;
+        
+    loop:
+        if (p->count > 0)
+            // do not delete cells with dependencies
+            return;
+    
+        pp = p->m_p;
+        delete p;
+        alive--;
+        
+        if (pp == NULL)
+            return;
+        
+        pp->count--;
+        
+        assert(pp->count >= 0);
+        
+        if (pp->count <= 0)
         {
-            CellPointer* p = target;
-            CellPointer* pp;
-            
-        loop:
-            if (p->count > 0)
-                // do not delete cells with dependencies
-                return;
-        
-            pp = p->m_p;
-            delete p;
-            alive--;
-            
-            if (pp == NULL)
-                return;
-            
-            pp->count--;
-            
-            assert(pp->count >= 0);
-            
-            if (pp->count <= 0)
-            {
-                p = pp;
-                goto loop;
-            }
+            p = pp;
+            goto loop;
         }
+    }
         
-	long m_x;
-	long m_y;
+	INT_TYPE m_x;
+	INT_TYPE m_y;
 	CellPointer* m_p;
-        char count;
-        char m_type;
+    char count;
+    char m_type;
         
 };
 
-void LevDP2Cols::progress(PerformanceLap& lap, long x, int& lastpercent, long cellsAllocated, long cellsAlive)
+void LevDP2Cols::progress(PerformanceLap& lap, INT_TYPE x, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
 #define DECIMALS_PERCENT    100
     
@@ -183,7 +183,7 @@ void LevDP2Cols::progress(PerformanceLap& lap, long x, int& lastpercent, long ce
     }
 }
 
-char* LevDP2Cols::getAlignmentPath(long* distance)
+char* LevDP2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     char* path = new char[m_m+m_n];
 
@@ -198,18 +198,18 @@ char* LevDP2Cols::getAlignmentPath(long* distance)
     long cellsAllocated = 0;
     long cellsAlive = 0;
 
-    for (long y = 0; y <= m_m; y++)
+    for (INT_TYPE y = 0; y <= m_m; y++)
     {
         prev[y] = NULL;
     }
 
     int lastpercent = -1;
 
-    for (long x = 0; x <= m_n; x++)
+    for (INT_TYPE x = 0; x <= m_n; x++)
     {		
         progress(lap, x, lastpercent, cellsAllocated, cellsAlive);
                 
-        for (long y = 0; y <= m_m; y++)
+        for (INT_TYPE y = 0; y <= m_m; y++)
         {
             if ((x == 0) && (y == 0))
             {
@@ -302,14 +302,14 @@ char* LevDP2Cols::getAlignmentPath(long* distance)
         }
 
         // now copy current column to the prev
-        for (long y=0; y <= m_m; y++)
+        for (INT_TYPE y=0; y <= m_m; y++)
         {
             prev[y] = selected[y];
         }
     }
 
     // finally delete all elements (but the last) from the last column
-    for (long y=0; y < m_m; y++)
+    for (INT_TYPE y=0; y < m_m; y++)
     {
         if (prev[y] != NULL)
             CellPointer::deleteChain(prev[y], cellsAlive);
@@ -319,7 +319,7 @@ char* LevDP2Cols::getAlignmentPath(long* distance)
     progress(lap, m_n, lastpercent, cellsAllocated, cellsAlive);
 
     CellPointer* p=prev[m_m];
-    long i=0;
+    INT_TYPE i=0;
     
     while (p != NULL)
     {
@@ -332,11 +332,11 @@ char* LevDP2Cols::getAlignmentPath(long* distance)
     path[i] = 0;
     
     // now reverse
-    long k=i-1;
+    INT_TYPE k=i-1;
 
-    for (int i = 0; i < k/2; i++)
+    for (INT_TYPE i = 0; i < k/2; i++)
     {
-        long aux = path[i];
+        INT_TYPE aux = path[i];
         path[i] = path[k-i];
         path[k-i] = aux;
     }
