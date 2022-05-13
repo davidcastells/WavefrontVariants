@@ -37,9 +37,9 @@ WavefrontDynamicDiamond2Cols::~WavefrontDynamicDiamond2Cols()
 
 
 
-static long extend(const char* P, const char* T, long m, long n, long pi, long ti)
+static INT_TYPE extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-	long e = 0;
+	INT_TYPE e = 0;
 	
 	while (pi < m && ti < n)
 	{
@@ -53,23 +53,23 @@ static long extend(const char* P, const char* T, long m, long n, long pi, long t
 	return e;
 }
 
-static long polarExistsInD(long d, long r)
+static int polarExistsInD(INT_TYPE d, INT_TYPE r)
 {
-	long x = POLAR_D_TO_CARTESIAN_X(d,r);
-	long y = POLAR_D_TO_CARTESIAN_Y(d,r);
+	INT_TYPE x = POLAR_D_TO_CARTESIAN_X(d,r);
+	INT_TYPE y = POLAR_D_TO_CARTESIAN_Y(d,r);
 	
 	return ((x >= 0) && (y>=0));
 }
 
-static long polarExistsInW(long d, long r)
+static int polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
-	long x = POLAR_W_TO_CARTESIAN_X(d,r);
-	long y = POLAR_W_TO_CARTESIAN_Y(d,r);
+	INT_TYPE x = POLAR_W_TO_CARTESIAN_X(d,r);
+	INT_TYPE y = POLAR_W_TO_CARTESIAN_Y(d,r);
 	
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
+void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {                       
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -83,7 +83,7 @@ void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k
 
 	try
 	{
-		m_W = new long[size];
+		m_W = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -101,12 +101,12 @@ void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k
 
 }
 
-long WavefrontDynamicDiamond2Cols::getDistance()
+INT_TYPE WavefrontDynamicDiamond2Cols::getDistance()
 {
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long ret;
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE ret;
 	
-    long kt = m_k;
+    INT_TYPE kt = m_k;
 	
     // for the first element, just execute the extend phase
     m_W[0] = extend(m_P, m_T, m_m, m_n, 0, 0);
@@ -115,28 +115,28 @@ long WavefrontDynamicDiamond2Cols::getDistance()
         goto end_loop;
 	
     // opening the diamond
-    for (long r=1; r < kt; r++)
+    for (INT_TYPE r=1; r < kt; r++)
     {
             if (verbose)
                     printf("\rr %ld/%ld %.2f%%", r, kt, (r*100.0/kt) );
 
-            long k_odd = kt % 2;
-            long k_half = kt/2;
+            INT_TYPE k_odd = kt % 2;
+            INT_TYPE k_half = kt/2;
 
             //printf("[%ld] half: %ld \n", r, k_half);
 
             if (r  <= k_half)
             {
 
-                    for (long d=-r; d <= r; d++)
+                    for (INT_TYPE d=-r; d <= r; d++)
                     {			
-                            long abs_d = max2(final_d-d,d-final_d);
+                            INT_TYPE abs_d = max2(final_d-d,d-final_d);
 
-                            long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-                            long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-                            long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+                            INT_TYPE diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+                            INT_TYPE left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+                            INT_TYPE diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
 
-                            int compute;
+                            INT_TYPE compute;
 
                             if (d == 0)
                                     compute = max3(diag_up, left+1, diag_down);
@@ -151,15 +151,15 @@ long WavefrontDynamicDiamond2Cols::getDistance()
                                     goto end_loop;
                             }
 
-                            int ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-                            int ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+                            INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+                            INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
                             if ((ex < m_n) && (ey < m_m))
                             {
                                     //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
 
-                                    long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-                                    long extended = compute + extendv;
+                                    INT_TYPE extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                                    INT_TYPE extended = compute + extendv;
 
                                     m_W[POLAR_W_TO_INDEX(d, r)] = extended;
 
@@ -198,17 +198,17 @@ long WavefrontDynamicDiamond2Cols::getDistance()
             {
                     //printf("[%ld]\n", r);
 
-                    long cr = kt - (r  + k_odd); // 5 - (2 + 1) = 5 -3 = 2
+                    INT_TYPE cr = kt - (r  + k_odd); // 5 - (2 + 1) = 5 -3 = 2
 
-                    for (long d=-cr; d <= cr; d++)
+                    for (INT_TYPE d=-cr; d <= cr; d++)
                     {			
-                            long abs_d = max2(final_d-d,d-final_d);
+                            INT_TYPE abs_d = max2(final_d-d,d-final_d);
 
-                            long diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
-                            long left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
-                            long diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
+                            INT_TYPE diag_up = (polarExistsInW(d+1, r-1))? m_W[POLAR_W_TO_INDEX(d+1, r-1)]  : 0;
+                            INT_TYPE left = (polarExistsInW(d,r-1))? m_W[POLAR_W_TO_INDEX(d, r-1)]  : 0;
+                            INT_TYPE diag_down = (polarExistsInW(d-1,r-1))? m_W[POLAR_W_TO_INDEX(d-1, r-1)]  : 0;
 
-                            long compute;
+                            INT_TYPE compute;
 
                             if (d == 0)
                                     compute = max3(diag_up, left+1, diag_down);
@@ -223,15 +223,15 @@ long WavefrontDynamicDiamond2Cols::getDistance()
                                     goto end_loop;
                             }
 
-                            long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-                            long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+                            INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+                            INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
                             if ((ex < m_n) && (ey < m_m))
                             {
                                     //printf("Compute (d=%d r=%d) = max(%d,%d,%d) = %d  || ", d, r , diag_up, left, diag_down, compute );
 
-                                    long extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
-                                    long extended = compute + extendv;
+                                    INT_TYPE extendv = extend(m_P, m_T, m_m, m_n, ey, ex);
+                                    INT_TYPE extended = compute + extendv;
 
                                     m_W[POLAR_W_TO_INDEX(d, r)] = extended;
 
@@ -270,7 +270,7 @@ long WavefrontDynamicDiamond2Cols::getDistance()
 
 end_loop:
     if (verbose)
-            printf("\n");
+        printf("\n");
 
     return ret;
 }
@@ -282,7 +282,7 @@ const char* WavefrontDynamicDiamond2Cols::getDescription()
 	return "Wavefront Dynamic Diamond 2 columns";
 }
 
-char* WavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
+char* WavefrontDynamicDiamond2Cols::getAlignmentPath(INT_TYPE* distance)
 {
 	printf("Alignment Not implemented yet!\n");
 	exit(0);
