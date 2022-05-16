@@ -89,11 +89,13 @@ print('mem,tl,wgs,register,shmem,cmem,time,gcups')
 
 df = pd.read_csv('local_tiles_column.txt', skiprows=0)
 
-for tl in range(1, 20):
+df.sort_values(['wgs'], inplace=True)
+
+for tl in range(1, 40):
     df_tl = df[df['tl'] == tl]
     
     #print('Tile len' , tl)
-    for wgs in range(16,1025,8):
+    for wgs in range(16,1025,16): #[16,24, 32, 40, 48, 64, 96, 128, 144, 160, 192, 208, 224, 256, 384, 448, 512, 768, 1024]: # 
         df_wgs = df_tl[df_tl['wgs']==wgs]
         
         #print('Tile len' , wgs)
@@ -120,7 +122,7 @@ for tl in range(1, 20):
 #test('NT_033779.4.fasta', 'NT_037436.3.fasta', -1) 
 #testED('BA000046.3.fasta', 'NC_000021.7.fasta') 
 
-# LAUNCH WITH : nohup python3 -u test_local_tiles_column.py > new_local_tiles_column.txt &
+# LAUNCH WITH : nohup python3 -u test_local_tiles_column.py > new_local_tiles_column.txt 2> /dev/null &
 
 # SORT with
 #import pandas as pd
