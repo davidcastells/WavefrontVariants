@@ -23,6 +23,9 @@
 
 #include <stdio.h>
 
+
+extern int gMeasureIterationTime;
+
 #define INT_TYPE int
 #define INT_TYPE_FMT d
 #define STR(x)  #x
@@ -68,9 +71,13 @@ public:
             {
                     INT_TYPE ed = getDistance();
                     lap.stop();
-                    printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
-                    printf("m x n = %d x %d\n", m_m, m_n);
-                    printf("Equivalent GCUPS: %f\n", (((double)m_m*m_n)/(lap.lap() * 1E9)));
+                    
+                    if (!gMeasureIterationTime)
+                    {
+                        printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+                        printf("m x n = %d x %d\n", m_m, m_n);
+                        printf("Equivalent GCUPS: %f\n", (((double)m_m*m_n)/(lap.lap() * 1E9)));
+                    }
             }
     }
         
