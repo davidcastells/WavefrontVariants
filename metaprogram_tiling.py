@@ -10,7 +10,7 @@ def createStruct(tl):
     
     for r in range(2):
         for d in range(k):
-            print('   long r{}_d{};'.format(r, normd(d)))
+            print('   INT_TYPE r{}_d{};'.format(r, normd(d)))
             
     print('} LOCAL_TILE;')
     print('#define LOCAL_TILE_PTR      LOCAL_TILE*')
@@ -21,9 +21,9 @@ def createStruct(tl):
 def createWriteIf(tl):
     k = 2*tl +1
     print('void inline __attribute__((always_inline))')
-    print('writeLocalW(LOCAL_TILE_PARAM, int df, int rf, long v)')
+    print('writeLocalW(LOCAL_TILE_PARAM, int df, int r, INT_TYPE v)')
     print('{')
-    print('   int r = rf % 2;')
+    #print('   int r = (2+rf) % 2;')
     print('   int d = df + {};'.format(tl))
     slink1 = ''
     
@@ -45,12 +45,12 @@ def createWriteIf(tl):
 def createReadIf(tl):
     k = 2*tl +1
         
-    print('long inline __attribute__((always_inline))')
-    print('readLocalW(LOCAL_TILE_PARAM, int df, int rf)')
+    print('INT_TYPE inline __attribute__((always_inline))')
+    print('readLocalW(LOCAL_TILE_PARAM, int df, int r)')
     print('{')
-    print('   int r = rf % 2;')
+    #print('   int r = (2+rf) % 2;')
     print('   int d = df + {};'.format(tl))
-    print('   long v;')
+    print('   INT_TYPE v;')
     slink1 = ''
     
     for r in range(2):
@@ -135,11 +135,11 @@ def createReadSwitch(tl):
     print('}')
     print('')
     
-for tl in range(10):
+for tl in range(30):
     print('#if TILE_LEN == {}'.format(tl))
-    createStruct(tl-1)
-    createWriteIf(tl-1)
-    createReadIf(tl-1)         
+    createStruct(tl)
+    createWriteIf(tl)
+    createReadIf(tl)         
     #createWriteSwitch(tl)
     #createReadSwitch(tl)         
     print('#endif')
