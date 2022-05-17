@@ -3,6 +3,12 @@ def normd(d):
     s = '{}'.format(d)
     return s.replace('-', 'm')
     
+def dorder(d, tl):
+    import math
+    m = (d+1)//2
+    e = int(math.pow(-1, d))
+    return tl + e*m
+    
 def createStruct(tl):
     k = 2*tl +1
     print('typedef struct')
@@ -10,6 +16,7 @@ def createStruct(tl):
     
     for r in range(2):
         for d in range(k):
+            d = dorder(d, tl)
             print('   INT_TYPE r{}_d{};'.format(r, normd(d)))
             
     print('} LOCAL_TILE;')
@@ -32,6 +39,7 @@ def createWriteIf(tl):
         print('   {')
         slink2 = ''
         for d in range(k):
+            d = dorder(d, tl)
             print('      {}if (d == {}) localW->r{}_d{} = v; '.format(slink2, d, r, d));
             slink2 = 'else '
         print('   }')
@@ -58,6 +66,7 @@ def createReadIf(tl):
         print('   {')
         slink2 = ''
         for d in range(k):
+            d = dorder(d, tl)
             print('      {}if (d == {}) v = localW->r{}_d{} ; '.format(slink2, d, r, d));
             slink2 = 'else '
         print('   }')
@@ -135,7 +144,7 @@ def createReadSwitch(tl):
     print('}')
     print('')
     
-for tl in range(30):
+for tl in range(1,30):
     print('#if TILE_LEN == {}'.format(tl))
     createStruct(tl)
     createWriteIf(tl)
