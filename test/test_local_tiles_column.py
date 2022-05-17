@@ -124,9 +124,9 @@ for tl in range(1, 40):
 
 # LAUNCH WITH : nohup python3 -u test_local_tiles_column.py > new_local_tiles_column.txt 2> /dev/null &
 
-# SORT with
-#import pandas as pd
-#df = pd.read_csv('local_tiles_column.txt', skiprows=0)
-#df2 = df.sort_values(['tl','mem','wgs'])
-#df3 = df2.drop_duplicates(['tl','mem','wgs'])
-#df3.to_csv('local_tiles_column.txt', index=False)
+def sortData():
+    import pandas as pd
+    df = pd.read_csv('local_tiles_column.txt', skiprows=0)
+    df2 = df.sort_values(['tl','mem','wgs'])
+    df3 = df2.drop_duplicates(['tl','mem','wgs'])
+    df3.to_csv('local_tiles_column.txt', index=False)
