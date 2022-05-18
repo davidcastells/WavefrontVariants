@@ -11,18 +11,14 @@ public:
 	LevDP();
 	virtual ~LevDP();
 
-	void setInput(const char* P, const char* T, long k);
-	long getDistance();
-	char* getAlignmentPath(long* distance);
+	void setInput(const char* P, const char* T, INT_TYPE k);
+	INT_TYPE getDistance();
+	char* getAlignmentPath(INT_TYPE* distance);
 	const char* getDescription(); 
 	
-	long* m_D;
-	long m_top;
-	const char* m_P;
-	const char* m_T;
-	long m_n;
-	long m_m;
-	long m_k;
+	INT_TYPE* m_D;
+	INT_TYPE m_top;
+	INT_TYPE m_k;
 };
 
 #endif
