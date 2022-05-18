@@ -34,9 +34,9 @@ WavefrontDiamond::~WavefrontDiamond()
 
 
 
-long WavefrontDiamond_extend(const char* P, const char* T, int m, int n, long pi, long ti)
+long WavefrontDiamond_extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-	long e = 0;
+	INT_TYPE e = 0;
 	
 	while (pi < m && ti < n)
 	{
@@ -50,7 +50,7 @@ long WavefrontDiamond_extend(const char* P, const char* T, int m, int n, long pi
 	return e;
 }
 
-long WavefrontDiamond_polarExistsInD(long d, long r)
+long WavefrontDiamond_polarExistsInD(INT_TYPE d, INT_TYPE r)
 {
 	long x = POLAR_D_TO_CARTESIAN_X(d,r);
 	long y = POLAR_D_TO_CARTESIAN_Y(d,r);
@@ -58,7 +58,7 @@ long WavefrontDiamond_polarExistsInD(long d, long r)
 	return ((x >= 0) && (y>=0));
 }
 
-long WavefrontDiamond_polarExistsInW(long d, long r)
+long WavefrontDiamond_polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
 	long x = POLAR_W_TO_CARTESIAN_X(d,r);
 	long y = POLAR_W_TO_CARTESIAN_Y(d,r);
@@ -66,7 +66,7 @@ long WavefrontDiamond_polarExistsInW(long d, long r)
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontDiamond::setInput(const char* P, const char* T, long k)
+void WavefrontDiamond::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -78,7 +78,7 @@ void WavefrontDiamond::setInput(const char* P, const char* T, long k)
 
 	try
 	{
-		m_W = new long[size];
+		m_W = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -94,16 +94,16 @@ void WavefrontDiamond::setInput(const char* P, const char* T, long k)
 	printf("input set\n");
 }
 
-long WavefrontDiamond::getDistance()
+INT_TYPE WavefrontDiamond::getDistance()
 {
-	int final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-	int ret;
+	INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+	INT_TYPE ret;
 	
 	// for the first element, just execute the extend phase
 	m_W[0] = WavefrontDiamond_extend(m_P, m_T, m_m, m_n, 0, 0);
 		
-	long k_odd = m_k % 2;
-	long k_half = m_k/2;
+	INT_TYPE k_odd = m_k % 2;
+	INT_TYPE k_half = m_k/2;
 
 	if (m_W[0] >= m_top)
 		goto end_loop;
@@ -228,7 +228,7 @@ const char* WavefrontDiamond::getDescription()
 	return "Wavefront Diamond";
 }
 
-char* WavefrontDiamond::getAlignmentPath(long* distance)
+char* WavefrontDiamond::getAlignmentPath(INT_TYPE* distance)
 {
 	printf("Alignment Not implemented yet!\n");
 	exit(0);

@@ -36,7 +36,7 @@ WavefrontDiamond2Cols::~WavefrontDiamond2Cols()
 }
 
 
-static long extend(const char* P, const char* T, int m, int n, long pi, long ti)
+static INT_TYPE extend(const char* P, const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
 	long e = 0;
 	
@@ -52,7 +52,7 @@ static long extend(const char* P, const char* T, int m, int n, long pi, long ti)
 	return e;
 }
 
-static long polarExistsInD(long d, long r)
+static int polarExistsInD(INT_TYPE d, INT_TYPE r)
 {
 	long x = POLAR_D_TO_CARTESIAN_X(d,r);
 	long y = POLAR_D_TO_CARTESIAN_Y(d,r);
@@ -60,7 +60,7 @@ static long polarExistsInD(long d, long r)
 	return ((x >= 0) && (y>=0));
 }
 
-static long polarExistsInW(long d, long r)
+static int polarExistsInW(INT_TYPE d, INT_TYPE r)
 {
 	long x = POLAR_W_TO_CARTESIAN_X(d,r);
 	long y = POLAR_W_TO_CARTESIAN_Y(d,r);
@@ -68,7 +68,7 @@ static long polarExistsInW(long d, long r)
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontDiamond2Cols::setInput(const char* P, const char* T, long k)
+void WavefrontDiamond2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -80,7 +80,7 @@ void WavefrontDiamond2Cols::setInput(const char* P, const char* T, long k)
 
 	try
 	{
-		m_W = new long[size];
+		m_W = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -96,7 +96,7 @@ void WavefrontDiamond2Cols::setInput(const char* P, const char* T, long k)
 	printf("input set\n");
 }
 
-long WavefrontDiamond2Cols::getDistance()
+INT_TYPE WavefrontDiamond2Cols::getDistance()
 {
 	int final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
 	int ret;
@@ -240,7 +240,7 @@ const char* WavefrontDiamond2Cols::getDescription()
 	return "Wavefront Diamond 2 columns";
 }
 
-char* WavefrontDiamond2Cols::getAlignmentPath(long* distance)
+char* WavefrontDiamond2Cols::getAlignmentPath(INT_TYPE* distance)
 {
 	printf("Alignment Not implemented yet!\n");
 	exit(0);
