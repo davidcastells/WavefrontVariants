@@ -81,7 +81,7 @@ OCLGPUWavefrontOriginal2Cols::~OCLGPUWavefrontOriginal2Cols()
         delete [] m_W;
 }
 
-void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
+void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
@@ -109,7 +109,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -127,14 +127,13 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     CHECK_CL_ERRORS(err);
     m_buf_T = clCreateBuffer(m_context, CL_MEM_READ_ONLY, m_n, NULL, &err);
     CHECK_CL_ERRORS(err);
-    
 
-    printf("creating buffer %.2f GB\n", size*sizeof(long)/(1E9));
+    printf("creating buffer %.2f GB\n", size*sizeof(INT_TYPE)/(1E9));
 
-    m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(long), NULL, &err);
+    m_buf_W = clCreateBuffer(m_context, CL_MEM_READ_WRITE, size * sizeof(INT_TYPE), NULL, &err);
     CHECK_CL_ERRORS(err);
     
-    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2 * sizeof(long), NULL, &err);
+    m_buf_final_d_r = clCreateBuffer(m_context, CL_MEM_READ_WRITE, 2 * sizeof(INT_TYPE), NULL, &err);
     CHECK_CL_ERRORS(err);
     
     auto ocl = OCLUtils::getInstance();
@@ -145,6 +144,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
     options += " -D WORKGROUP_SIZE=" + std::to_string(gWorkgroupSize);
     options += " -D COLUMN_HEIGHT=" + std::to_string(2*k+1);
     options += " -D ROW_ZERO_OFFSET=" + std::to_string(k);
+    options += " -D INT_TYPE="  STR_INT_TYPE "";
     options += " ";
 
     std::string plName = ocl->getSelectedPlatformName();
@@ -161,7 +161,7 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, long k
 }
 
 
-void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
     static double lastPrintLap = 0;
     
@@ -176,14 +176,16 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& la
 //    double estimated = (elapsed / r) * (m_k);
 //    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
     // square model
-    double estimated = (elapsed / (r*r)) * (m_k*m_k);
-    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
+    double rd = r;
+    double kd = m_k;
+    double estimated = (elapsed / (rd*rd)) * (kd*kd);
+    int percent = (rd*rd*100.0*DECIMALS_PERCENT/(kd*kd));
     
     if (elapsed > (lastPrintLap + printPeriod))
     {
         printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("r %ld/%ld %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT),  (int) elapsed, (int) estimated );
+        printf("r %d/%d %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT),  (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
@@ -194,7 +196,7 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& la
 
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
 
-long OCLGPUWavefrontOriginal2Cols::getDistance()
+INT_TYPE OCLGPUWavefrontOriginal2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -204,10 +206,10 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
     m_queue->writeBuffer(m_buf_P, (void*) m_P, m_m);
     m_queue->writeBuffer(m_buf_T, (void*) m_T, m_n);
     
-    long h = 2*m_k+1;
+    INT_TYPE h = 2*m_k+1;
     
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n);
 
     setCommonArgs();
     
@@ -231,7 +233,7 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         
         if ((r % NUMBER_OF_INVOCATIONS_PER_READ) == 0)
         {
-            m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+            m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(INT_TYPE));
             
             if (m_final_d_r[0] >= m_top)
                 return m_final_d_r[1];
@@ -244,7 +246,7 @@ long OCLGPUWavefrontOriginal2Cols::getDistance()
         progress(lap, m_k, lastpercent, cellsAllocated, cellsAlive);
     }
 
-    m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(long));
+    m_queue->readBuffer(m_buf_final_d_r, m_final_d_r, 2 * sizeof(INT_TYPE));
             
     if (verbose > 1)
     {
@@ -268,17 +270,17 @@ void OCLGPUWavefrontOriginal2Cols::setCommonArgs()
     ret = clSetKernelArg(m_kernel, 1, sizeof(cl_mem), (void *)&m_buf_T);
     CHECK_CL_ERRORS(ret);
     
-    ret = clSetKernelArg(m_kernel, 2, sizeof(cl_long), (void *)&m_m);
+    ret = clSetKernelArg(m_kernel, 2, sizeof(CL_INT_TYPE), (void *)&m_m);
     CHECK_CL_ERRORS(ret);
 
-    ret = clSetKernelArg(m_kernel, 3, sizeof(cl_long), (void *)&m_n);
+    ret = clSetKernelArg(m_kernel, 3, sizeof(CL_INT_TYPE), (void *)&m_n);
     CHECK_CL_ERRORS(ret);
     
     //long size = 2*(2*m_k+1);
 
     long k = max2(m_m,m_n);
 
-    ret = clSetKernelArg(m_kernel, 5, sizeof(cl_long), (void *)&k);
+    ret = clSetKernelArg(m_kernel, 5, sizeof(CL_INT_TYPE), (void *)&k);
     CHECK_CL_ERRORS(ret);
     
     ret = clSetKernelArg(m_kernel, 6, sizeof(cl_mem), (void *)&m_buf_W);
@@ -288,22 +290,22 @@ void OCLGPUWavefrontOriginal2Cols::setCommonArgs()
     CHECK_CL_ERRORS(ret);
 }
 
-void OCLGPUWavefrontOriginal2Cols::invokeKernel(long r)
+void OCLGPUWavefrontOriginal2Cols::invokeKernel(INT_TYPE r)
 {
     cl_int ret;
     
-    ret = clSetKernelArg(m_kernel, 4, sizeof(cl_long), (void *)&r);
+    ret = clSetKernelArg(m_kernel, 4, sizeof(CL_INT_TYPE), (void *)&r);
     CHECK_CL_ERRORS(ret);
 
     // long k = max2(m_m,m_n);
     
-    long numTilesPerInvocation = (r/m_tileLen)+1;
-    long numWorkItemsPerTile = (2*m_tileLen + 1);
-    long numWorkItems = numTilesPerInvocation * numWorkItemsPerTile;
+    INT_TYPE numTilesPerInvocation = (r/m_tileLen)+1;
+    INT_TYPE numWorkItemsPerTile = (2*m_tileLen + 1);
+    INT_TYPE numWorkItems = numTilesPerInvocation * numWorkItemsPerTile;
     m_queue->invokeKernel1D(m_kernel, numWorkItems, numWorkItemsPerTile);
 }
 
-char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(long* distance)
+char* OCLGPUWavefrontOriginal2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     printf("Not implemented yet\n");
     exit(-1);
