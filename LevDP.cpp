@@ -19,7 +19,7 @@ LevDP::~LevDP()
 	delete [] m_D;
 }
 
-void LevDP::setInput(const char* P, const char* T, long k)
+void LevDP::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -31,7 +31,7 @@ void LevDP::setInput(const char* P, const char* T, long k)
 
 	try
 	{
-		m_D = new long[size];
+		m_D = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -47,11 +47,11 @@ void LevDP::setInput(const char* P, const char* T, long k)
 
 }
 
-long LevDP::getDistance()
+INT_TYPE LevDP::getDistance()
 {
 	printf("computing\n");
-	for (long y = 0; y <= m_m; y++)
-		for (long x = 0; x <= m_n; x++)
+	for (INT_TYPE y = 0; y <= m_m; y++)
+		for (INT_TYPE x = 0; x <= m_n; x++)
 		{
 			if (x == 0)
 			{
@@ -63,18 +63,18 @@ long LevDP::getDistance()
 			}
 			else
 			{
-				long d = abs(x-y);
+				INT_TYPE d = abs(x-y);
 				if (d > m_k)
 				{
 					m_D[CARTESIAN_TO_INDEX(y, x, m_n+1)] = m_top;
 				}
 				else
 				{
-					long dif = m_P[y-1] != m_T[x-1];
-					long diag = m_D[CARTESIAN_TO_INDEX(y-1, x-1, m_n+1)] + dif;
-					long up = m_D[CARTESIAN_TO_INDEX(y-1, x, m_n+1)] + 1;
-					long left = m_D[CARTESIAN_TO_INDEX(y, x-1, m_n+1)] + 1;
-					long v = min3(up, left, diag);
+					INT_TYPE dif = m_P[y-1] != m_T[x-1];
+					INT_TYPE diag = m_D[CARTESIAN_TO_INDEX(y-1, x-1, m_n+1)] + dif;
+					INT_TYPE up = m_D[CARTESIAN_TO_INDEX(y-1, x, m_n+1)] + 1;
+					INT_TYPE left = m_D[CARTESIAN_TO_INDEX(y, x-1, m_n+1)] + 1;
+					INT_TYPE v = min3(up, left, diag);
 					m_D[CARTESIAN_TO_INDEX(y, x, m_n+1)] = v;
 				}
 			}
@@ -82,12 +82,12 @@ long LevDP::getDistance()
 			// printf("D[%d][%d]=%d\n", y, x, D[CARTESIAN_TO_INDEX(y,x, n+1)] );
 		}
 		
-	long ret = m_D[CARTESIAN_TO_INDEX(m_m, m_n, m_n+1)];
+	INT_TYPE ret = m_D[CARTESIAN_TO_INDEX(m_m, m_n, m_n+1)];
 	
 	return ret;
 }
 
-char* LevDP::getAlignmentPath(long* distance)
+char* LevDP::getAlignmentPath(INT_TYPE* distance)
 {
     *distance = getDistance();
 
@@ -101,11 +101,11 @@ char* LevDP::getAlignmentPath(long* distance)
 
     while (y > 0 || x > 0)
     {
-        long ed = m_D[CARTESIAN_TO_INDEX(y, x, m_n + 1)];
-        long up = (y > 0) ? m_D[CARTESIAN_TO_INDEX(y - 1, x, m_n + 1)] : ed;
-        long left = (x > 0) ? m_D[CARTESIAN_TO_INDEX(y, x - 1, m_n + 1)] : ed;
-        long diag = (x > 0 && y > 0) ? m_D[CARTESIAN_TO_INDEX(y - 1, x - 1, m_n + 1)] : ed;
-        long m = min3(up, left, diag);
+        INT_TYPE ed = m_D[CARTESIAN_TO_INDEX(y, x, m_n + 1)];
+        INT_TYPE up = (y > 0) ? m_D[CARTESIAN_TO_INDEX(y - 1, x, m_n + 1)] : ed;
+        INT_TYPE left = (x > 0) ? m_D[CARTESIAN_TO_INDEX(y, x - 1, m_n + 1)] : ed;
+        INT_TYPE diag = (x > 0 && y > 0) ? m_D[CARTESIAN_TO_INDEX(y - 1, x - 1, m_n + 1)] : ed;
+        INT_TYPE m = min3(up, left, diag);
         if (diag == m)
         {
             if (ed == diag)
@@ -133,7 +133,7 @@ char* LevDP::getAlignmentPath(long* distance)
     path[i] = 0;
 
     // now reverse
-    long k = i - 1;
+    INT_TYPE k = i - 1;
 
     for (int i = 0; i < k / 2; i++)
     {
