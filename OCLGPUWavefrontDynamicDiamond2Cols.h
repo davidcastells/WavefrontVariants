@@ -38,21 +38,22 @@ public:
 
 protected:
 
-    void setInput(const char* P, const char* T, long k);
-    long getDistance();
-    char* getAlignmentPath(long* distance);
+    void setInput(const char* P, const char* T, INT_TYPE k);
+    INT_TYPE getDistance();
+    char* getAlignmentPath(INT_TYPE* distance);
     const char* getDescription(); 
 
     void setCommonArgs();
-    void invokeKernel(long r, long dstart, long numds);
-    void progress(PerformanceLap& lap, long r, long rsol, int& lastpercent, long cellsAllocated, long cellsAlive, long numds);
+    void resetW(INT_TYPE h);
+    void invokeKernel(INT_TYPE r, INT_TYPE dstart, INT_TYPE numds, INT_TYPE rsol);
+    void progress(PerformanceLap& lap, INT_TYPE r, INT_TYPE rsol, int& lastpercent, long cellsAllocated, long cellsAlive, INT_TYPE numds);
     
-    long* m_W;
-    long m_k;
-    long m_top;
+    INT_TYPE* m_W;
+    INT_TYPE m_k;
+    INT_TYPE m_top;
     int m_tileLen;
     std::string m_localStore;
-    long m_final_d_r[2];
+    INT_TYPE m_final_d_r[2];
     
     cl_context m_context;
     OCLQueue* m_queue;
@@ -61,6 +62,7 @@ protected:
     cl_mem m_buf_W;
     cl_mem m_buf_final_d_r;
     cl_kernel m_kernel;
+    cl_kernel m_resetKernel;
 };
 
 #endif /* OCLGPUWAVEFRONTDYNAMICDIAMOND2COLS_H */
