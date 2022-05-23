@@ -18,9 +18,9 @@
 #define max2(a,b) (((a)>(b))?(a):(b))
 #define max3(a,b,c) max2(a, max2(b, c))
 
-long extend(__global const char* P, __global const char* T, long m, long n, long pi, long ti)
+INT_TYPE extend(__global const char* P, __global const char* T, INT_TYPE m, INT_TYPE n, INT_TYPE pi, INT_TYPE ti)
 {
-    long e = 0;
+    INT_TYPE e = 0;
 
     while (pi < m && ti < n)
     {
@@ -46,23 +46,23 @@ int polarExistsInW(long d, long r)
 
 void  processCell(__global char* P,     
         __global char* T,   
-        long m_m,           
-        long m_n, 
-        __local long localW[2][TILE_LEN*2+1], 
+        INT_TYPE m_m,           
+        INT_TYPE m_n, 
+        __local INT_TYPE localW[2][TILE_LEN*2+1], 
         size_t gid, 
         size_t lid, 
-        long r,
-        long d, 
+        INT_TYPE r,
+        INT_TYPE d, 
         int lr, int ld, 
         int* pdone,
-        __global long* p_final_d_r, 
-        long m_top, 
-        long final_d,
-        long tile)
+        __global INT_TYPE* p_final_d_r, 
+        INT_TYPE m_top, 
+        INT_TYPE final_d,
+        INT_TYPE tile)
 {
-    long diag_up;
-    long left;
-    long diag_down; 
+    INT_TYPE diag_up;
+    INT_TYPE left;
+    INT_TYPE diag_down; 
     
     int lup;
     int ldown;
@@ -99,7 +99,7 @@ void  processCell(__global char* P,
         left = (polarExistsInW(d,r-1))? left : 0;
         diag_down = (polarExistsInW(d-1,r-1))?  diag_down  : 0; 
         
-        long compute;
+        INT_TYPE compute;
 
         if (d == 0)
             compute = max(diag_up, diag_down);
@@ -120,8 +120,8 @@ void  processCell(__global char* P,
 
         if ((done == 0) && (d == final_d) && (compute >= m_top))
         {
-            //printf("tile: %ld WR(%d, %d) c: %ld\n", tile, lr, ld, compute);
             //printf("COMPLETE\n");
+            //printf("tile: %d LWR(%d, %d) GWR(%d,%d) c: %d \n", tile, lr, ld, r,d ,compute);
 
             localW[LOCAL_R(lr)][LOCAL_D(ld)] = compute;
             p_final_d_r[0] = compute;   // furthest reaching point
@@ -130,18 +130,18 @@ void  processCell(__global char* P,
             return;
         }
         
-        long ex = POLAR_W_TO_CARTESIAN_X(d, compute);
-        long ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
+        INT_TYPE ex = POLAR_W_TO_CARTESIAN_X(d, compute);
+        INT_TYPE ey = POLAR_W_TO_CARTESIAN_Y(d, compute);
 
         if ((ex < m_n) && (ey < m_m))
         {
-            long extendv = extend(P, T, m_m, m_n, ey, ex);
-            long extended = compute + extendv;
+            INT_TYPE extendv = extend(P, T, m_m, m_n, ey, ex);
+            INT_TYPE extended = compute + extendv;
 
             // printf("WR %ld\n", extended);
 
             localW[LOCAL_R(lr)][LOCAL_D(ld)] = extended;
-            //printf("tile: %ld WR(%d, %d) e: %ld\n", tile, lr, ld, extended);
+            // printf("tile: %d LWR(%d, %d) GWR(%d,%d) e: %d \n", tile, lr, ld, r, d, extended);
 
             if ((done == 0) && (d == final_d) && (extended >= m_top))
             {
@@ -154,16 +154,13 @@ void  processCell(__global char* P,
         }
         else
         {
-            //printf("tile: %ld WR(%d, %d) c: %ld\n", tile, lr, ld, compute);
+            // printf("tile: %d LWR(%d, %d) GWR(%d,%d) c: %d \n", tile, lr, ld, r,d ,compute);
 
             localW[LOCAL_R(lr)][LOCAL_D(ld)] = compute;
             // it is impossible to assign the final result here, because it would
             // have been in the previous compute check
-        }
-    
-    }  
-    
-
+        }    
+    }      
 }        
 
 /**
@@ -183,12 +180,12 @@ void  processCell(__global char* P,
 __kernel void wfo2cols(
         __global char* P,   // 0  
         __global char* T,   // 1
-        long m_m,           // 2
-        long m_n, 
-        long r0, 
-        long m_k,  
-        __global long* m_W,
-        __global long* p_final_d_r)
+        INT_TYPE m_m,           // 2
+        INT_TYPE m_n, 
+        INT_TYPE r0, 
+        INT_TYPE m_k,  
+        __global INT_TYPE* m_W,
+        __global INT_TYPE* p_final_d_r)
 {
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
@@ -196,16 +193,16 @@ __kernel void wfo2cols(
 #ifdef SHARED_STORE
     //__local long localW[WORKGROUP_SIZE];
     
-    __local long localW[2][TILE_LEN*2+1];   //  column, diagonal
+    __local INT_TYPE localW[2][TILE_LEN*2+1];   //  column, diagonal
 #endif
     
     //long d = gid - (r-1);
-    long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
-    long m_top = max2(m_m,m_n);
+    INT_TYPE final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
+    INT_TYPE m_top = max2(m_m,m_n);
     
     int ld = -TILE_LEN + lid;
-    long tile = gid / (TILE_LEN*2 + 1);
-    long d = -r0 + 2 * TILE_LEN * tile + ld;
+    INT_TYPE tile = gid / (TILE_LEN*2 + 1);
+    INT_TYPE d = -r0 + 2 * TILE_LEN * tile + ld;
 
 
     if (gid == 0)
@@ -233,7 +230,7 @@ __kernel void wfo2cols(
     // Now compute the tile using only shared memory    
     for (int lr = 0; lr < 2*TILE_LEN; lr++)
     {
-        long r = r0 + lr;
+        INT_TYPE r = r0 + lr;
 
         //printf("t[%ld][%ld] - r: %ld   d:%ld  lr: %d ld: %d\n", gid, lid, r, d, lr, ld);
 
