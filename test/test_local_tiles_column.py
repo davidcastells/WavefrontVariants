@@ -123,6 +123,7 @@ for tl in range(1, 40):
 #testED('BA000046.3.fasta', 'NC_000021.7.fasta') 
 
 # LAUNCH WITH : nohup python3 -u test_local_tiles_column.py > new_local_tiles_column.txt 2> /dev/null &
+# UPDATE WITH: cat new_local_tiles_column.txt | sed -n '1,2d;p' >> local_tiles_column.txt
 
 def sortData():
     import pandas as pd
