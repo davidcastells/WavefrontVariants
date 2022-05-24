@@ -4,6 +4,16 @@ import numpy as np
 import scipy
 import os
 
+def svg2pdf(file):
+    cmd = 'inkscape {}.svg --export-area-drawing --export-pdf={}.pdf'.format(file, file)
+    print(cmd)
+    os.system(cmd)
+
+def pdfcrop(file):
+    cmd = '/tmp/pdfcrop.pl {}.pdf'.format(file)
+    print(cmd)
+    os.system(cmd)
+
 df = pd.read_csv('min_reads_shared.txt', skiprows=1)
 
 df.sort_values(['wgs'], inplace=True)
@@ -46,8 +56,8 @@ if (False):
 plt.rcParams["figure.figsize"] = [4, 3]
 plt.rcParams["figure.autolayout"] = True
 
-plt.plot(x_global, gcups_global, label='global')
-plt.plot(x_shared, gcups_shared, label='shared')
+plt.plot(x_global, gcups_global, 'g-', label='global')
+plt.plot(x_shared, gcups_shared, 'g--', label='shared')
 
 
 #plt.xlim(0, d)
@@ -57,21 +67,11 @@ plt.plot(x_shared, gcups_shared, label='shared')
 plt.ylabel('GCUPS')
 plt.xlabel('Workgroup Size')
 plt.xlim(0, 1024)
-plt.ylim(0, 300)
+plt.ylim(0, 600)
 plt.legend()
 plt.savefig('min_reads_shared_gcups.svg')
 plt.show()
 
 
-def svg2pdf(file):
-    cmd = 'inkscape {}.svg --export-area-drawing --export-pdf={}.pdf'.format(file, file)
-    print(cmd)
-    os.system(cmd)
-    
-def pdfcrop(file):
-    cmd = '/tmp/pdfcrop.pl {}.pdf'.format(file)    
-    print(cmd)
-    os.system(cmd)
-    
 svg2pdf('min_reads_shared_gcups')
 pdfcrop('min_reads_shared_gcups')
