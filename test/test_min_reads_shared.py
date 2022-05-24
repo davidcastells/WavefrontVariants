@@ -67,7 +67,7 @@ print('mem,wgs,register,shmem,cmem,time,gcups')
 
 df = pd.read_csv('min_reads_shared.txt', skiprows=1)
 
-for wgs in range(32,1025, 4):
+for wgs in range(4,1025, 4):
     df_wgs = df[df['wgs']==wgs]
     for mem in ['shared','global']:
         df_mem = df_wgs[df_wgs['mem']==mem]
