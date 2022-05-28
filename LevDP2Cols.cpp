@@ -24,7 +24,7 @@ LevDP2Cols::~LevDP2Cols()
 	delete [] m_D;
 }
 
-void LevDP2Cols::setInput(const char* P, const char* T, long k)
+void LevDP2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -36,7 +36,7 @@ void LevDP2Cols::setInput(const char* P, const char* T, long k)
 
 	try
 	{
-		m_D = new long[size];
+		m_D = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -53,7 +53,7 @@ void LevDP2Cols::setInput(const char* P, const char* T, long k)
 
 }
 
-long LevDP2Cols::getDistance()
+INT_TYPE LevDP2Cols::getDistance()
 {
 	printf("computing\n");
 
@@ -164,7 +164,7 @@ public:
         
 };
 
-void LevDP2Cols::progress(PerformanceLap& lap, long x, int& lastpercent, long cellsAllocated, long cellsAlive)
+void LevDP2Cols::progress(PerformanceLap& lap, INT_TYPE x, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
 #define DECIMALS_PERCENT    100
     
@@ -183,7 +183,7 @@ void LevDP2Cols::progress(PerformanceLap& lap, long x, int& lastpercent, long ce
     }
 }
 
-char* LevDP2Cols::getAlignmentPath(long* distance)
+char* LevDP2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     char* path = new char[m_m+m_n];
 
