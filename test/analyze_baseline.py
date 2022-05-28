@@ -17,13 +17,14 @@ z = np.array(df['gcups'])
 plt.rcParams["figure.figsize"] = [4, 3]
 plt.rcParams["figure.autolayout"] = True
 
-plt.plot(x, z)
+print('Max GCUPS:', np.max(z), 'for', x[np.argmax(z)], 'workitems', 'execution time:', y[np.argmax(z)])
+plt.plot(x, z, 'b')
     
 
     
 #plt.title('Global')
 plt.ylabel('GCUPS')
-plt.ylim(0, 160)
+plt.ylim(0, 300)
 plt.xlim(0, 1024)
 plt.xlabel('Workgroup Size')
 #plt.legend()
