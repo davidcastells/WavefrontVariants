@@ -66,7 +66,7 @@ long polarExistsInW(long d, long r)
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontOriginal::setInput(const char* P, const char* T, long k)
+void WavefrontOriginal::setInput(const char* P, const char* T, INT_TYPE k)
 {
     m_m = strlen(P);
     m_n = strlen(T);
@@ -78,7 +78,7 @@ void WavefrontOriginal::setInput(const char* P, const char* T, long k)
 
     try
     {
-        m_W = new long[size];
+        m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -95,7 +95,7 @@ void WavefrontOriginal::setInput(const char* P, const char* T, long k)
 
 }
 
-long WavefrontOriginal::getDistance()
+INT_TYPE WavefrontOriginal::getDistance()
 {
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long ret;
@@ -202,7 +202,7 @@ const char* WavefrontOriginal::getDescription()
  * @param distance
  * @return 
  */
-char* WavefrontOriginal::getAlignmentPath(long* distance)
+char* WavefrontOriginal::getAlignmentPath(INT_TYPE* distance)
 {
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     
