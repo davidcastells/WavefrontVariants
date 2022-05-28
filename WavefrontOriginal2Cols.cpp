@@ -71,7 +71,7 @@ static long polarExistsInW(long d, long r)
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
+void WavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
     m_m = strlen(P);
     m_n = strlen(T);
@@ -83,7 +83,7 @@ void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
     try
     {
-            m_W = new long[size];
+            m_W = new INT_TYPE[size];
     }
     catch (const std::bad_alloc& e) 
     {
@@ -100,7 +100,7 @@ void WavefrontOriginal2Cols::setInput(const char* P, const char* T, long k)
 
 }
 
-void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastpercent, long cellsAllocated, long cellsAlive)
+void WavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
 #define DECIMALS_PERCENT    1000
     if (!verbose)
@@ -121,7 +121,7 @@ void WavefrontOriginal2Cols::progress(PerformanceLap& lap, long r, int& lastperc
     }
 }
 
-long WavefrontOriginal2Cols::getDistance()
+INT_TYPE WavefrontOriginal2Cols::getDistance()
 {
     PerformanceLap lap;
     int lastpercent = -1;
@@ -282,7 +282,7 @@ public:
  * @param distance
  * @return 
  */
-char* WavefrontOriginal2Cols::getAlignmentPath(long* distance)
+char* WavefrontOriginal2Cols::getAlignmentPath(INT_TYPE* distance)
 {
     // longest worst case path goes through the table boundary 
     char* path = new char[m_m + m_n];
