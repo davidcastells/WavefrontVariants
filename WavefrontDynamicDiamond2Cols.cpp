@@ -69,7 +69,7 @@ static long polarExistsInW(long d, long r)
 	return ((x >= 0) && (y >= 0));
 }
 
-void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k)
+void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {                       
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -83,7 +83,7 @@ void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k
 
 	try
 	{
-		m_W = new long[size];
+		m_W = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -101,7 +101,7 @@ void WavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, long k
 
 }
 
-long WavefrontDynamicDiamond2Cols::getDistance()
+INT_TYPE WavefrontDynamicDiamond2Cols::getDistance()
 {
     long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
     long ret;
@@ -282,7 +282,7 @@ const char* WavefrontDynamicDiamond2Cols::getDescription()
 	return "Wavefront Dynamic Diamond 2 columns";
 }
 
-char* WavefrontDynamicDiamond2Cols::getAlignmentPath(long* distance)
+char* WavefrontDynamicDiamond2Cols::getAlignmentPath(INT_TYPE* distance)
 {
 	printf("Alignment Not implemented yet!\n");
 	exit(0);
