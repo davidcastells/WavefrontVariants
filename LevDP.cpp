@@ -19,7 +19,7 @@ LevDP::~LevDP()
 	delete [] m_D;
 }
 
-void LevDP::setInput(const char* P, const char* T, long k)
+void LevDP::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -31,7 +31,7 @@ void LevDP::setInput(const char* P, const char* T, long k)
 
 	try
 	{
-		m_D = new long[size];
+		m_D = new INT_TYPE[size];
 	}
 	catch (const std::bad_alloc& e) 
 	{
@@ -47,7 +47,7 @@ void LevDP::setInput(const char* P, const char* T, long k)
 
 }
 
-long LevDP::getDistance()
+INT_TYPE LevDP::getDistance()
 {
 	printf("computing\n");
 	for (long y = 0; y <= m_m; y++)
@@ -87,7 +87,7 @@ long LevDP::getDistance()
 	return ret;
 }
 
-char* LevDP::getAlignmentPath(long* distance)
+char* LevDP::getAlignmentPath(INT_TYPE* distance)
 {
     *distance = getDistance();
 
