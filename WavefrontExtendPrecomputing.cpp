@@ -68,7 +68,7 @@ int extend(const char* P, const char* T, int m, int n, int pi, int ti)
 */
 
 
-void WavefrontExtendPrecomputing::setInput(const char* P, const char* T, long k)
+void WavefrontExtendPrecomputing::setInput(const char* P, const char* T, INT_TYPE k)
 {
 	m_m = strlen(P);
 	m_n = strlen(T);
@@ -80,7 +80,7 @@ void WavefrontExtendPrecomputing::setInput(const char* P, const char* T, long k)
 
 	printf("Size = %ld\n", m_size_W);
 
-	m_W = new int[m_size_W];
+	m_W = new INT_TYPE[m_size_W];
 	
 	assert(m_W);
 	m_top = max2(m_m,m_n);
@@ -136,7 +136,7 @@ void WavefrontExtendPrecomputing::precomputeExtend()
 	}*/
 }
 
-long WavefrontExtendPrecomputing::getDistance()
+INT_TYPE WavefrontExtendPrecomputing::getDistance()
 {
 	long final_d = CARTESIAN_TO_POLAR_D_D(m_m, m_n);
 	long ret;
@@ -215,7 +215,7 @@ const char* WavefrontExtendPrecomputing::getDescription()
 	return "Wavefront Extend Precomputing";
 }
 
-char* WavefrontExtendPrecomputing::getAlignmentPath(long* distance)
+char* WavefrontExtendPrecomputing::getAlignmentPath(INT_TYPE* distance)
 {
 	printf("Alignment Not implemented yet!\n");
 	exit(0);
