@@ -18,7 +18,7 @@ plt.rcParams["figure.figsize"] = [4, 3]
 plt.rcParams["figure.autolayout"] = True
 
 print('Max GCUPS:', np.max(z), 'for', x[np.argmax(z)], 'workitems', 'execution time:', y[np.argmax(z)])
-plt.plot(x, z, 'b')
+plt.plot(x, z, 'g')
     
 
     
