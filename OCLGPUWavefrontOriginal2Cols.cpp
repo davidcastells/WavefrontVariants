@@ -146,6 +146,10 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TY
 
 void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int& lastpercent, long cellsAllocated, long cellsAlive)
 {
+    static double lastPrintLap = 0;
+    
+    double printPeriod = (gPrintPeriod > 0)? gPrintPeriod : 0.5;
+    
 #define DECIMALS_PERCENT    1000
     if (!verbose)
         return;
@@ -155,18 +159,23 @@ void OCLGPUWavefrontOriginal2Cols::progress(PerformanceLap& lap, INT_TYPE r, int
 //    double estimated = (elapsed / r) * (m_k);
 //    int percent = (r*100.0*DECIMALS_PERCENT/m_k);
     // square model
-    double estimated = (elapsed / (r*r)) * (m_k*m_k);
-    int percent = (r*r*100.0*DECIMALS_PERCENT/(m_k*m_k));
+    double rd = r;
+    double kd = m_k;
+    double estimated = (elapsed / (rd*rd)) * (kd*kd);
+    int percent = (rd*rd*100.0*DECIMALS_PERCENT/(kd*kd));
     
-    //if (percent != lastpercent)
+    if (elapsed > (lastPrintLap + printPeriod))
     {
+        printf((gPrintPeriod > 0)?"\n":"\r");
         //printf("\rcol %ld/%ld %.2f%% cells allocated: %ld alive: %ld elapsed: %d s  estimated: %d s    ", x, m_n, ((double)percent/DECIMALS_PERCENT), cellsAllocated, cellsAlive, (int) elapsed, (int) estimated );
-        printf("\rr %d/%d %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT) , (int) elapsed, (int) estimated );
+        printf("r %d/%d %.2f%% elapsed: %d s  estimated: %d s  ", r, m_k, ((double)percent/DECIMALS_PERCENT),  (int) elapsed, (int) estimated );
     
         fflush(stdout);
         lastpercent = percent;
+        lastPrintLap = elapsed;
     }
 }
+
 
 #define NUMBER_OF_INVOCATIONS_PER_READ 100
 
