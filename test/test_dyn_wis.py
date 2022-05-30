@@ -89,7 +89,7 @@ print('wgs,register,shmem,cmem,time,gcups')
 
 df = pd.read_csv('dyn_wis.txt', skiprows=1)
 
-for wgs in range(32,1025,1):
+for wgs in range(1,1025,1):
     df_wgs = df[df['wgs']==wgs]
         
     if (len(df_wgs) == 0):
