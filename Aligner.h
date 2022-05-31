@@ -54,7 +54,11 @@ public:
 			lap.stop();
 			
 			if (!gMeasureIterationTime)
-    			printf("%s Distance=%ld Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+            {
+                printf("%s Distance=%d Time=%0.5f seconds\n", getDescription(), ed, lap.lap());
+                printf("m x n = %d x %d\n", m_m, m_n);
+                printf("Equivalent GCUPS: %f\n", (((double)m_m*m_n)/(lap.lap() * 1E9)));
+            }
 		}
 	}
 	
