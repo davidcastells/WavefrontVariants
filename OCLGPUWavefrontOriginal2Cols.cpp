@@ -42,6 +42,10 @@
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
 extern int verbose;
+extern long gM;
+extern long gN;
+extern long gK;
+
 extern int gPid;
 extern int gDid;
 extern int gTileLen;
@@ -60,7 +64,7 @@ OCLGPUWavefrontOriginal2Cols::OCLGPUWavefrontOriginal2Cols()
     
     auto ocl = OCLUtils::getInstance();
     ocl->selectPlatform(gPid);
-    ocl->selectDevice(0);
+    ocl->selectDevice(gDid);
     
     m_context = ocl->createContext();
     m_queue = ocl->createQueue();
@@ -86,9 +90,12 @@ void OCLGPUWavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TY
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
     
-    m_m = strlen(P);
-    m_n = strlen(T);
-    m_k = k;
+    // TODO: remove parameters in setInput, they are already global variables
+
+	m_m = gM; //  strlen(P);
+	m_n = gN; // strlen(T);
+	m_k = gK; // k;
+
     m_tileLen = gTileLen;
 
     if (strcmp(gLocalTileMemory, "register") == 0)
