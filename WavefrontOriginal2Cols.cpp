@@ -27,6 +27,9 @@
 #define CARTESIAN_TO_POLAR_W_R(y, x)		(((y)>(x))? (y) : (x))
 
 extern int verbose;
+extern long gM;
+extern long gN;
+extern long gK;
 
 WavefrontOriginal2Cols::WavefrontOriginal2Cols()
 {
@@ -73,9 +76,12 @@ static INT_TYPE polarExistsInW(INT_TYPE d, INT_TYPE r)
 
 void WavefrontOriginal2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
-    m_m = strlen(P);
-    m_n = strlen(T);
-    m_k = k;
+    // TODO: remove parameters in setInput, they are already global variables
+
+	m_m = gM; //  strlen(P);
+	m_n = gN; // strlen(T);
+	m_k = gK; // k;
+
 
     long size = 2*(2*k+1);
 
