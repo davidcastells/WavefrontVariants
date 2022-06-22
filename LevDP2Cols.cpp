@@ -14,6 +14,10 @@ int dynamic_programming_classic(const char* P, const char* T, INT_TYPE m, INT_TY
 
 
 extern int verbose;
+extern long gM;
+extern long gN;
+extern long gK;
+
 
 LevDP2Cols::LevDP2Cols()
 {
@@ -26,9 +30,11 @@ LevDP2Cols::~LevDP2Cols()
 
 void LevDP2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 {
-	m_m = strlen(P);
-	m_n = strlen(T);
-	m_k = k;
+    // TODO: remove parameters in setInput, they are already global variables
+
+	m_m = gM; //  strlen(P);
+	m_n = gN; // strlen(T);
+	m_k = gK; // k;
 
 	long size = (m_m+1)*2;
 	
@@ -55,7 +61,7 @@ void LevDP2Cols::setInput(const char* P, const char* T, INT_TYPE k)
 
 INT_TYPE LevDP2Cols::getDistance()
 {
-	printf("computing\n");
+	printf("computing %ld x %ld\n", m_m, m_n);
 
 	PerformanceLap lap;
 	lap.start();
