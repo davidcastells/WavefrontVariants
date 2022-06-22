@@ -19,6 +19,8 @@
 #include "OCLUtils.h"
 #include "OCLGPUWavefrontOriginal2Cols.h"
 #include "OCLGPUWavefrontDynamicDiamond2Cols.h"
+#include "BinaryFileReader.h"
+#include "TextFileReader.h"
 
 int wavefront_classic(const char* P, const char* T, int m, int n, int k);
 int wavefront_dcr(const char* P, const char* T, int m, int n, int k);
@@ -307,9 +309,6 @@ int main(int argc, char* args[])
 {
     parseArgs(argc, args);
 
-    FastaInfo fastaP;
-    FastaInfo fastaT;
-
     if (gP == NULL && gT == NULL && gfP == NULL && gfT == NULL)
     {
         printf("Generating random Input\n");
@@ -323,15 +322,37 @@ int main(int argc, char* args[])
     }
     else if (gfP != NULL)
     {
-        printf("Reading input files\n");
-        fastaP = FastaReader::read(gfP);
-        fastaT = FastaReader::read(gfT);
+        if (ends_with(gfP, ".fasta"))
+	    {
+	        // We process Fasta files
+	        FastaInfo fastaP;
+	        FastaInfo fastaT;
+	        
+	        printf("Reading input files\n");
+            fastaP = FastaReader::read(gfP);
+            fastaT = FastaReader::read(gfT);
 
-        gP = fastaP.seq;
-        gT = fastaT.seq;
+            gP = fastaP.seq;
+            gT = fastaT.seq;
 
-        gM = strlen(gP);
-        gN = strlen(gT);
+            gM = strlen(gP);
+            gN = strlen(gT);
+        }
+        else if (file_is_binary(gfP))
+        {
+            gP = BinaryFileReader::read(gfP, &gM);
+            gT = BinaryFileReader::read(gfT, &gN);            
+        }
+        else
+        {
+            // Other files are just compared as text
+            gP = TextFileReader::read(gfP);
+            gT = TextFileReader::read(gfT);
+
+            gM = strlen(gP);
+            gN = strlen(gT);
+        }
+
     }
     else
     {
