@@ -58,6 +58,10 @@
 #define NUMBER_OF_INVOCATIONS_PER_READ gEnqueuedInvocations
 
 extern int verbose;
+extern long gM;
+extern long gN;
+extern long gK;
+
 extern int gPid;
 extern int gDid;
 extern int gTileLen;
@@ -103,9 +107,12 @@ void OCLGPUWavefrontDynamicDiamond2Cols::setInput(const char* P, const char* T, 
     // this should not be allocated, we only expect a single call
     assert(m_W == NULL);
     
-    m_m = strlen(P);
-    m_n = strlen(T);
-    m_k = k;
+    // TODO: remove parameters in setInput, they are already global variables
+
+	m_m = gM; //  strlen(P);
+	m_n = gN; // strlen(T);
+	m_k = gK; // k;
+
     m_tileLen = gTileLen;
 
     if (strcmp(gLocalTileMemory, "shared") == 0)
