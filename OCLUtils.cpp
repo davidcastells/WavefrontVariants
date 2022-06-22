@@ -13,6 +13,8 @@
 
 #include "OCLUtils.h"
 #include "PerformanceLap.h"
+#include "TextFileReader.h"
+#include "BinaryFileReader.h"
 
 #include <unistd.h>
 #include <stdio.h>
@@ -342,23 +344,7 @@ std::string OCLUtils::loadSourceFile(const char* filename)
 {
     std::string file = m_kernelDir + std::string(filename);
     
-    // Read program file and place content into buffer 
-    FILE* fp = fopen(file.c_str(), "r");
-
-    if (fp == NULL) 
-        throw std::runtime_error(std::string("File not found") + std::string(filename));
-
-    fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
-    rewind(fp);
-   
-    char* buffer = (char*)malloc(size + 1);
-
-    fread(buffer, sizeof(char), size, fp);
-    buffer[size] = '\0';
-
-    fclose(fp);
-
+    char* buffer = TextFileReader::read(file.c_str());
     
     std::string ret(buffer);
     
