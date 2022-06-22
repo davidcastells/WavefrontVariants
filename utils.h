@@ -11,4 +11,10 @@
 #define TEXT_SCAPE_UNDERLINE    "\e[4m"
 #define TEXT_SCAPE_END          "\e[0m"
 
+#include <string>
+
+bool ends_with(const std::string &filename, const std::string &ext);
+bool file_is_binary(char* filename);
+
+
 #endif
